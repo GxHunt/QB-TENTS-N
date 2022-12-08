@@ -1470,7 +1470,15 @@ RegisterNetEvent('inventory:server:SaveInventory', function(type, id)
 			Gloveboxes[id].isOpen = false
 		end
 	elseif type == "stash" then
+		local indexstart, indexend = string.find(id, 'Backpack_')
+		if indexstart and indexend then
+			 TriggerEvent('qb-backpack:server:saveBackpack', source, id, Stashes[id].items, function(close)
+				  Stashes[id].isOpen = close
+			 end)
+			 return
+		end
 		SaveStashItems(id, Stashes[id].items)
+   elseif type == "drop" then
 	elseif type == "drop" then
 		if Drops[id] then
 			Drops[id].isOpen = false
@@ -2273,6 +2281,8 @@ QBCore.Commands.Add("giveitem", "Give An Item (Admin Only)", {{name="id", help="
 					info.quality = 100
 				elseif itemData["name"] == "harness" then
 					info.uses = 20
+				elseif itemData["name"] == "vape" then
+					info.uses = 100
 				elseif itemData["name"] == "markedbills" then
 					info.worth = math.random(5000, 10000)
 				elseif itemData["name"] == "labkey" then

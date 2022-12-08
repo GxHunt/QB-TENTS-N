@@ -12,6 +12,34 @@ QBShared.Jobs = {
             },
         },
 	},
+    ['uwu'] = {
+        label = 'Uwu Cafe',
+        defaultDuty = true,
+        offDutyPay = false,
+        grades = {
+            ['0'] = {
+                name = 'Recruit',
+                payment = 150
+            },
+            ['1'] = {
+                name = 'Crew Member',
+                payment = 165
+            },
+            ['2'] = {
+                name = 'Shift Manager',
+                payment = 175
+            },
+            ['3'] = {
+                name = 'Manager',
+                payment = 185
+            },
+            ['4'] = {
+                name = 'Owner',
+                isboss = true,
+                payment = 200
+            },
+        },
+    },
 	['police'] = {
 		label = 'Law Enforcement',
         type = "leo",

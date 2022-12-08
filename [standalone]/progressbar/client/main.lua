@@ -72,6 +72,7 @@ function Process(action, start, tick, finish)
             isAnim = false
             isProp = false
 
+            TriggerServerEvent("InteractSound_SV:PlayOnSource", "progressbar", 0.1)
             SendNUIMessage({
                 action = "progress",
                 duration = Action.duration,
@@ -89,10 +90,12 @@ function Process(action, start, tick, finish)
                     end
                     if IsControlJustPressed(0, 200) and Action.canCancel then
                         TriggerEvent("progressbar:client:cancel")
+                        TriggerServerEvent("InteractSound_SV:PlayOnSource", "progressbarcancel", 0.1)
                     end
 
                     if IsEntityDead(ped) and not Action.useWhileDead then
                         TriggerEvent("progressbar:client:cancel")
+                        TriggerServerEvent("InteractSound_SV:PlayOnSource", "progressbarcancel", 0.1)
                     end
                 end
                 if finish ~= nil then

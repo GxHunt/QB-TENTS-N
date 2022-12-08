@@ -805,6 +805,7 @@ exports('IsCreatingCharacter', function()
 end)
 
 function openMenu(allowedMenus)
+    TriggerEvent("backitems:displayItems", false)
     previousSkinData = json.encode(skinData)
     creatingCharacter = true
 
@@ -1060,6 +1061,7 @@ RegisterNUICallback('close', function(_, cb)
     SetNuiFocus(false, false)
     creatingCharacter = false
     disableCam()
+    TriggerEvent("backitems:displayItems", true)
     FreezeEntityPosition(PlayerPedId(), false)
     TriggerEvent('qb-clothing:client:onMenuClose')
     cb('ok')

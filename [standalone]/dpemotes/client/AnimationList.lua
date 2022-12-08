@@ -1426,6 +1426,79 @@ DP.Shared = {
 --- DANCING EMOTES, SOME WITH PROPS ---
 
 DP.Dances = {
+   
+    ["stopsign"] = {"amb@world_human_janitor@male@base", "base", "Stop Sign", AnimationOptions =
+    {
+        Prop = "prop_sign_road_01a",
+        PropBone = 57005,
+        PropPlacement = {0.10, -1.0, 0.0, -90.0, -250.0, 0.0},
+        EmoteLoop = true,
+        EmoteMoving = true,
+    }},
+    ["walkingmansign"] = {"amb@world_human_janitor@male@base", "base", "Walking Man Sign", AnimationOptions =
+    {
+        Prop = "prop_sign_road_05a",
+        PropBone = 57005,
+        PropPlacement = {0.10, -1.0, 0.0, -90.0, -250.0, 0.0},
+        EmoteLoop = true,
+        EmoteMoving = true,
+    }},
+    ["dontblockintersectionsign"] = {"amb@world_human_janitor@male@base", "base", "Intersection Sign", AnimationOptions =
+    {
+        Prop = "prop_sign_road_03e",
+        PropBone = 57005,
+        PropPlacement = {0.10, -1.0, 0.0, -90.0, -250.0, 0.0},
+        EmoteLoop = true,
+        EmoteMoving = true,
+    }},
+    ["uturnsign"] = {"amb@world_human_janitor@male@base", "base", "U Turn Sign", AnimationOptions =
+    {
+        Prop = "prop_sign_road_03m",
+        PropBone = 57005,
+        PropPlacement = {0.10, -1.0, 0.0, -90.0, -250.0, 0.0},
+        EmoteLoop = true,
+        EmoteMoving = true,
+    }},
+    ["noparkingsign"] = {"amb@world_human_janitor@male@base", "base", "No Parking Sign", AnimationOptions =
+    {
+        Prop = "prop_sign_road_04a",
+        PropBone = 57005,
+        PropPlacement = {0.10, -1.0, 0.0, -90.0, -250.0, 0.0},
+        EmoteLoop = true,
+        EmoteMoving = true,
+    }},
+    ["leftturnsign"] = {"amb@world_human_janitor@male@base", "base", "Left Turn Sign", AnimationOptions =
+    {
+        Prop = "prop_sign_road_05e",
+        PropBone = 57005,
+        PropPlacement = {0.10, -1.0, 0.0, -90.0, -250.0, 0.0},
+        EmoteLoop = true,
+        EmoteMoving = true,
+    }},
+    ["rightturnsign"] = {"amb@world_human_janitor@male@base", "base", "Right Turn Sign", AnimationOptions =
+    {
+        Prop = "prop_sign_road_05f",
+        PropBone = 57005,
+        PropPlacement = {0.10, -1.0, 0.0, -90.0, -250.0, 0.0},
+        EmoteLoop = true,
+        EmoteMoving = true,
+    }},
+    ["notrespassingsign"] = {"amb@world_human_janitor@male@base", "base", "No Trespassing Sign", AnimationOptions =
+    {
+        Prop = "prop_sign_road_restriction_10",
+        PropBone = 57005,
+        PropPlacement = {0.10, -1.0, 0.0, -90.0, -250.0, 0.0},
+        EmoteLoop = true,
+        EmoteMoving = true,
+    }},
+    ["yieldsign"] = {"amb@world_human_janitor@male@base", "base", "Yield Sign", AnimationOptions =
+    {
+        Prop = "prop_sign_road_02a",
+        PropBone = 57005,
+        PropPlacement = {0.10, -1.0, 0.0, -90.0, -250.0, 0.0},
+        EmoteLoop = true,
+        EmoteMoving = true,
+    }},
     ["dance"] = {
         "anim@amb@nightclub@dancers@podium_dancers@",
         "hi_dance_facedj_17_v2_male^5",
@@ -4493,6 +4566,20 @@ DP.AnimalEmotes = {
 
 DP.Emotes = {
 
+    ["hitvape"] = {
+        "mp_player_inteat@burger",
+        "mp_player_int_eat_burger",
+            "Hit Vape",
+        AnimationOptions = {
+            Prop = 'ba_prop_battle_vape_01',
+            PropBone = 18905,
+            PropPlacement = {
+                0.08, -0.00, 0.03, -150.0, 90.0, -10.0
+            },
+            EmoteMoving = true,
+            EmoteLoop = true,
+        }
+    },
     ["dispenser"] = {
         "mini@sprunk",
         "plyr_buy_drink_pt1",
@@ -7832,6 +7919,47 @@ DP.Emotes = {
 
 --- EMOTES WITH 1 OR 2 PROPS ---
 DP.PropEmotes = {
+    ["bubbletea"] = {"amb@world_human_drinking@coffee@male@idle_a", "idle_c", "", AnimationOptions =
+    {
+       Prop = 'apa_prop_cs_plastic_cup_01',
+       PropBone = 28422,
+       PropPlacement = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+       EmoteLoop = true,
+       EmoteMoving = true,
+    }},
+    ["misosoup"] = {"amb@world_human_drinking@coffee@male@idle_a", "idle_c", "", AnimationOptions =
+    {
+       Prop = 'v_ret_247_noodle1',
+       PropBone = 28422,
+       PropPlacement = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+       EmoteLoop = true,
+       EmoteMoving = true, 
+    }}, 
+    ["uwusandy"] = {"mp_player_inteat@burger", "mp_player_int_eat_burger", "", AnimationOptions =
+    {
+       Prop = 'ng_proc_food_ornge1a',
+       PropBone = 18905,
+       PropPlacement = {0.13, 0.05, 0.02, -50.0, 16.0, 60.0},
+       EmoteMoving = true,
+    }},
+    ["budhabowl"] = {"anim@scripted@island@special_peds@pavel@hs4_pavel_ig5_caviar_p1", "base_idle", "", AnimationOptions =
+    {
+      Prop = "prop_cs_bowl_01b",
+      PropBone = 60309,
+      PropPlacement = {0.0, 0.0300, 0.0100, 0.0, 0.0, 0.0},
+      SecondProp = 'h4_prop_h4_caviar_spoon_01a',
+      SecondPropBone = 28422,
+      SecondPropPlacement = {0.0,0.0,0.0,0.0,0.0,0.0},
+      EmoteLoop = true,
+      EmoteMoving = true,
+    }},
+    ["donut"] = {"mp_player_inteat@burger", "mp_player_int_eat_burger", "Donut", AnimationOptions =
+    {
+        Prop = 'prop_amb_donut',
+        PropBone = 18905,
+        PropPlacement = {0.13, 0.05, 0.02, -50.0, 16.0, 60.0},
+        EmoteMoving = true,
+    }},	
     ["umbrella"] = {
         "amb@world_human_drinking@coffee@male@base",
         "base",

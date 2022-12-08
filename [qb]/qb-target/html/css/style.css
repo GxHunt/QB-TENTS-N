@@ -4,11 +4,15 @@ body {
 
 #target-eye {
     position: absolute;
-    top: 50%;
-    left: 50%;
+    top: 48%;
+    left: 49%;
     transform: translateY(-50%) translateX(-50%);
-    font-size: 3vh;
+    font-size: 3.25vh;
     text-shadow: 0.2vh 0.2vh 0.2vh #000000;
+    animation-name: spin;
+    animation-duration: 3000ms;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
 }
 
 #target-label-wrapper {
@@ -32,4 +36,13 @@ body {
     user-select: none;
     white-space: nowrap;
     text-shadow: 0.2vh 0.2vh 0.2vh #000000;
+}
+
+@keyframes spin {
+    from {
+        transform:rotate(0deg);
+    }
+    to {
+        transform:rotate(360deg);
+    }
 }

@@ -318,6 +318,7 @@ RegisterNetEvent('qb-clothes:client:CreateFirstCharacter', function()
                 ResetRechargeMultipliers()
             end
         end, config)
+
     end)
 end)
 
@@ -327,7 +328,7 @@ function OpenShop(config, isPedMenu, shopType)
             QBCore.Functions.Notify("Not enough cash. Need $" .. money, "error")
             return
         end
-
+        TriggerEvent("backitems:displayItems", false)
         exports[resourceName]:startPlayerCustomization(function(appearance)
             if appearance then
                 if not isPedMenu then
@@ -337,6 +338,7 @@ function OpenShop(config, isPedMenu, shopType)
             else
                 QBCore.Functions.Notify("Cancelled Customization")
             end
+            TriggerEvent("backitems:displayItems", true)
         end, config)
     end, shopType)
 end
@@ -379,10 +381,10 @@ RegisterNetEvent('fivem-appearance:client:openClothingShop', OpenClothingShop)
 
 RegisterNetEvent('fivem-appearance:client:saveOutfit', function()
     local keyboard = exports['qb-input']:ShowInput({
-        header = "Name your outfit",
-        submitText = "Save Outfit",
+        header = "Nama Baju",
+        submitText = "Simpan Baju",
         inputs = {{
-            text = "Outfit Name",
+            text = "Masukkan Nama Baju",
             name = "input",
             type = "text",
             isRequired = true
@@ -413,6 +415,7 @@ RegisterNetEvent('fivem-appearance:client:saveOutfit', function()
             TriggerServerEvent('fivem-appearance:server:saveOutfit', keyboard.input, pedModel, pedComponents, pedProps)
         end)
     end
+    TriggerEvent("backitems:start")
 end)
 
 RegisterNetEvent("fivem-appearance:client:OutfitManagementMenu", function(args)
@@ -621,14 +624,14 @@ function OpenMenu(isPedMenu, backEvent, menuType, menuData)
             }
         }
     }, {
-        header = "Save New Outfit",
-        txt = "Save a new outfit you can use later on",
+        header = "Simpan Baju",
+        txt = "Simpan Baju Kedalam Lemari",
         params = {
             event = "fivem-appearance:client:saveOutfit"
         }
     }, {
-        header = "Delete Outfit",
-        txt = "Yeah... We didnt like that one either",
+        header = "Hapus Baju",
+        txt = "Hapus Baju Tak Terpakai / Rusak",
         params = {
             event = "fivem-appearance:client:deleteOutfitMenu",
             args = {
@@ -638,12 +641,12 @@ function OpenMenu(isPedMenu, backEvent, menuType, menuData)
         }
     }}
     if menuType == "default" then
-        local header = "Buy Clothing - $" .. Config.ClothingCost
+        local header = "Beli Baju - $" .. Config.ClothingCost
         if isPedMenu then
             header = "Change Clothing"
         end
         menuItems[#menuItems + 1] = {
-            header = "Clothing Store Options",
+            header = "Toko Baju",
             icon = "fas fa-shirt",
             isMenuHeader = true -- Set to true to make a nonclickable title
         }
@@ -859,6 +862,7 @@ RegisterNetEvent('fivem-appearance:client:reloadSkin', function()
     if InCooldown() or CheckPlayerMeta() or IsPedInAnyVehicle(playerPed, true) or IsPedFalling(playerPed) then
         QBCore.Functions.Notify("You cannot use reloadskin right now", "error")
         return
+        TriggerEvent("backitems:start")
     end
 
     reloadSkinTimer = GetGameTimer()
@@ -881,6 +885,7 @@ RegisterNetEvent('fivem-appearance:client:reloadSkin', function()
         SetEntityHealth(playerPed, health)
         SetPedArmour(playerPed, armour)
         ResetRechargeMultipliers()
+        TriggerEvent("backitems:start")
     end)
 end)
 
@@ -888,6 +893,7 @@ RegisterNetEvent("fivem-appearance:client:ClearStuckProps", function()
     if InCooldown() or CheckPlayerMeta() then
         QBCore.Functions.Notify("You cannot use clearstuckprops right now", "error")
         return
+        TriggerEvent("backitems:start")
     end
 
     reloadSkinTimer = GetGameTimer()
@@ -898,8 +904,11 @@ RegisterNetEvent("fivem-appearance:client:ClearStuckProps", function()
         SetEntityAsMissionEntity(v, true, true)
         DeleteObject(v)
         DeleteEntity(v)
+        TriggerEvent("backitems:start")
       end
+      TriggerEvent("backitems:start")
     end
+    TriggerEvent("backitems:start")
 end)
 
 RegisterNetEvent("qb-radialmenu:client:onRadialmenuOpen", function()

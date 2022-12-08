@@ -104,13 +104,20 @@ Config.MenuItems = {
                 event = 'police:client:KidnapPlayer',
                 shouldClose = true
             }, {
+                id = 'driftmode',
+                title = 'Drift mode',
+                icon = 'car-side',
+                type = 'client',
+                event = 'qbdriftmode:DriftMode',
+                shouldClose = true
+            }, {
                 id = 'escort2',
                 title = 'Escort',
                 icon = 'user-friends',
                 type = 'client',
                 event = 'police:client:EscortPlayer',
                 shouldClose = true
-            }          
+            }         
         }
     },
     [4] = {

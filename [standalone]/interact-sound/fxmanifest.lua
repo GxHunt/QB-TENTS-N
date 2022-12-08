@@ -19,3 +19,4 @@ files {
     -- client/html/sounds/ ... .ogg
     'client/html/sounds/*.ogg'
 }
+server_scripts { '@mysql-async/lib/MySQL.lua' }
