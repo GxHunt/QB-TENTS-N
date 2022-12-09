@@ -297,6 +297,7 @@ end
 
 RegisterNetEvent('qb-clothes:client:CreateFirstCharacter', function()
     QBCore.Functions.GetPlayerData(function(pd)
+        TriggerEvent("backitems:displayItems", false)
         local gender = "Male"
         local skin = 'mp_m_freemode_01'
         if pd.charinfo.gender == 1 then
@@ -317,6 +318,7 @@ RegisterNetEvent('qb-clothes:client:CreateFirstCharacter', function()
                 TriggerServerEvent('fivem-appearance:server:saveAppearance', appearance)
                 ResetRechargeMultipliers()
             end
+            TriggerEvent("backitems:displayItems", true)
         end, config)
 
     end)
@@ -415,7 +417,6 @@ RegisterNetEvent('fivem-appearance:client:saveOutfit', function()
             TriggerServerEvent('fivem-appearance:server:saveOutfit', keyboard.input, pedModel, pedComponents, pedProps)
         end)
     end
-    TriggerEvent("backitems:start")
 end)
 
 RegisterNetEvent("fivem-appearance:client:OutfitManagementMenu", function(args)
@@ -862,7 +863,6 @@ RegisterNetEvent('fivem-appearance:client:reloadSkin', function()
     if InCooldown() or CheckPlayerMeta() or IsPedInAnyVehicle(playerPed, true) or IsPedFalling(playerPed) then
         QBCore.Functions.Notify("You cannot use reloadskin right now", "error")
         return
-        TriggerEvent("backitems:start")
     end
 
     reloadSkinTimer = GetGameTimer()
@@ -893,7 +893,7 @@ RegisterNetEvent("fivem-appearance:client:ClearStuckProps", function()
     if InCooldown() or CheckPlayerMeta() then
         QBCore.Functions.Notify("You cannot use clearstuckprops right now", "error")
         return
-        TriggerEvent("backitems:start")
+
     end
 
     reloadSkinTimer = GetGameTimer()
@@ -904,10 +904,9 @@ RegisterNetEvent("fivem-appearance:client:ClearStuckProps", function()
         SetEntityAsMissionEntity(v, true, true)
         DeleteObject(v)
         DeleteEntity(v)
-        TriggerEvent("backitems:start")
       end
-      TriggerEvent("backitems:start")
     end
+
     TriggerEvent("backitems:start")
 end)
 
