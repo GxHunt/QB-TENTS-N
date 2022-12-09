@@ -48,23 +48,22 @@ end)
 
 function TakeOutVehicle(vehicleInfo)
     local coords = Config.Locations["vehicle"].coords
-    QBCore.Functions.TriggerCallback('QBCore:Server:SpawnVehicle', function(netId)
-        local veh = NetToVeh(netId)
+    QBCore.Functions.SpawnVehicle(vehicleInfo, function(veh)
         SetVehicleNumberPlateText(veh, "WZNW"..tostring(math.random(1000, 9999)))
         SetEntityHeading(veh, coords.w)
-        exports['LegacyFuel']:SetFuel(veh, 100.0)
+        exports['qb-fuel']:SetFuel(veh, 100.0)
         TaskWarpPedIntoVehicle(PlayerPedId(), veh, -1)
         TriggerEvent("vehiclekeys:client:SetOwner", QBCore.Functions.GetPlate(veh))
         SetVehicleEngineOn(veh, true, true)
         SetVehicleLivery(veh, 2)
         CurrentPlate = QBCore.Functions.GetPlate(veh)
-    end, vehicleInfo, coords, true)
+    end, coords, true)
 end
 
 function MenuGarage()
     local vehicleMenu = {
         {
-            header = Lang:t("text.weazel_news_vehicles"),
+            header = "Weazel News Vehicles",
             isMenuHeader = true
         }
     }
@@ -83,7 +82,7 @@ function MenuGarage()
         }
     end
     vehicleMenu[#vehicleMenu+1] = {
-        header = Lang:t("text.close_menu"),
+        header = "⬅ Close Menu",
         txt = "",
         params = {
             event = "qb-menu:client:closeMenu"
@@ -95,23 +94,22 @@ end
 
 function TakeOutHelicopters(vehicleInfo)
     local coords = Config.Locations["heli"].coords
-    QBCore.Functions.TriggerCallback('QBCore:Server:SpawnVehicle', function(netId)
-        local veh = NetToVeh(netId)
+    QBCore.Functions.SpawnVehicle(vehicleInfo, function(veh)
         SetVehicleNumberPlateText(veh, "WZNW"..tostring(math.random(1000, 9999)))
         SetEntityHeading(veh, coords.w)
-        exports['LegacyFuel']:SetFuel(veh, 100.0)
+        exports['qb-fuel']:SetFuel(veh, 100.0)
         TaskWarpPedIntoVehicle(PlayerPedId(), veh, -1)
         TriggerEvent("vehiclekeys:client:SetOwner", QBCore.Functions.GetPlate(veh))
         SetVehicleEngineOn(veh, true, true)
         SetVehicleLivery(veh, 2)
         CurrentPlate = QBCore.Functions.GetPlate(veh)
-    end, vehicleInfo, coords, true)
+    end, coords, true)
 end
 
 function MenuHeliGarage()
     local vehicleMenu = {
         {
-            header = Lang:t("text.weazel_news_helicopters"),
+            header = "Weazel News Helicopters",
             isMenuHeader = true
         }
     }
@@ -130,7 +128,7 @@ function MenuHeliGarage()
         }
     end
     vehicleMenu[#vehicleMenu+1] = {
-        header = Lang:t("text.close_menu"),
+        header = "⬅ Close Menu",
         txt = "",
         params = {
             event = "qb-menu:client:closeMenu"
@@ -152,15 +150,16 @@ CreateThread(function()
                     DrawMarker(2, Config.Locations["vehicle"].coords.x, Config.Locations["vehicle"].coords.y, Config.Locations["vehicle"].coords.z, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.2, 0.15, 200, 200, 200, 222, false, false, false, true, false, false, false)
                     if #(pos - vector3(Config.Locations["vehicle"].coords.x, Config.Locations["vehicle"].coords.y, Config.Locations["vehicle"].coords.z)) < 1.5 then
                         if IsPedInAnyVehicle(PlayerPedId(), false) then
-                            DrawText3D(Config.Locations["vehicle"].coords.x, Config.Locations["vehicle"].coords.y, Config.Locations["vehicle"].coords.z, Lang:t("text.store_vehicle"))
+                            DrawText3D(Config.Locations["vehicle"].coords.x, Config.Locations["vehicle"].coords.y, Config.Locations["vehicle"].coords.z, "~g~E~w~ - Store the Vehicle")
                         else
-                            DrawText3D(Config.Locations["vehicle"].coords.x, Config.Locations["vehicle"].coords.y, Config.Locations["vehicle"].coords.z, Lang:t("text.vehicles"))
+                            DrawText3D(Config.Locations["vehicle"].coords.x, Config.Locations["vehicle"].coords.y, Config.Locations["vehicle"].coords.z, "~g~E~w~ - Vehicles")
                         end
                         if IsControlJustReleased(0, 38) then
                             if IsPedInAnyVehicle(PlayerPedId(), false) then
                                 DeleteVehicle(GetVehiclePedIsIn(PlayerPedId()))
                             else
                                 MenuGarage()
+                                currentGarage = k
                             end
                         end
                     end
@@ -169,15 +168,16 @@ CreateThread(function()
                     DrawMarker(2, Config.Locations["heli"].coords.x, Config.Locations["heli"].coords.y, Config.Locations["heli"].coords.z, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.2, 0.15, 200, 200, 200, 222, false, false, false, true, false, false, false)
                     if #(pos - vector3(Config.Locations["heli"].coords.x, Config.Locations["heli"].coords.y, Config.Locations["heli"].coords.z)) < 1.5 then
                         if IsPedInAnyVehicle(PlayerPedId(), false) then
-                            DrawText3D(Config.Locations["heli"].coords.x, Config.Locations["heli"].coords.y, Config.Locations["heli"].coords.z, Lang:t("text.store_helicopters"))
+                            DrawText3D(Config.Locations["heli"].coords.x, Config.Locations["heli"].coords.y, Config.Locations["heli"].coords.z, "~g~E~w~ - Store the Helicopters")
                         else
-                            DrawText3D(Config.Locations["heli"].coords.x, Config.Locations["heli"].coords.y, Config.Locations["heli"].coords.z, Lang:t("text.helicopters"))
+                            DrawText3D(Config.Locations["heli"].coords.x, Config.Locations["heli"].coords.y, Config.Locations["heli"].coords.z, "~g~E~w~ - Helicopters")
                         end
                         if IsControlJustReleased(0, 38) then
                             if IsPedInAnyVehicle(PlayerPedId(), false) then
                                 DeleteVehicle(GetVehiclePedIsIn(PlayerPedId()))
                             else
                                 MenuHeliGarage()
+                                currentGarage = k
                             end
                         end
                     end
@@ -203,7 +203,7 @@ CreateThread(function()
             if #(pos - vector3(Config.Locations["main"].coords.x, Config.Locations["main"].coords.y, Config.Locations["main"].coords.z)) < 1.5 or #(pos - vector3(Config.Locations["inside"].coords.x, Config.Locations["inside"].coords.y, Config.Locations["inside"].coords.z)) < 1.5 then
                 inRange = true
                 if #(pos - vector3(Config.Locations["main"].coords.x, Config.Locations["main"].coords.y, Config.Locations["main"].coords.z)) < 1.5 then
-                    DrawText3D(Config.Locations["main"].coords.x, Config.Locations["main"].coords.y, Config.Locations["main"].coords.z, Lang:t("text.enter"))
+                    DrawText3D(Config.Locations["main"].coords.x, Config.Locations["main"].coords.y, Config.Locations["main"].coords.z, "~g~E~w~ - Enter")
                     if IsControlJustReleased(0, 38) then
                         DoScreenFadeOut(500)
                         while not IsScreenFadedOut() do
@@ -218,7 +218,7 @@ CreateThread(function()
                         DoScreenFadeIn(1000)
                     end
                 elseif #(pos - vector3(Config.Locations["inside"].coords.x, Config.Locations["inside"].coords.y, Config.Locations["inside"].coords.z)) < 1.5 then
-                    DrawText3D(Config.Locations["inside"].coords.x, Config.Locations["inside"].coords.y, Config.Locations["inside"].coords.z, Lang:t("text.go_outside"))
+                    DrawText3D(Config.Locations["inside"].coords.x, Config.Locations["inside"].coords.y, Config.Locations["inside"].coords.z, "~g~E~w~ - Go outside")
                     if IsControlJustReleased(0, 38) then
                         DoScreenFadeOut(500)
                         while not IsScreenFadedOut() do

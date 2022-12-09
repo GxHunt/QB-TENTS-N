@@ -3,6 +3,7 @@ QBCore = exports['qb-core']:GetCoreObject()
 isHandcuffed = false
 cuffType = 1
 isEscorted = false
+draggerId = 0
 PlayerJob = {}
 onDuty = false
 local DutyBlips = {}
@@ -22,9 +23,19 @@ local function CreateDutyBlips(playerId, playerLabel, playerJob, playerLocation)
         SetBlipRotation(blip, math.ceil(playerLocation.w))
         SetBlipScale(blip, 1.0)
         if playerJob == "police" then
-            SetBlipColour(blip, 38)
+            SetBlipColour(blip, 26)
+        elseif playerJob == "bcso" then
+            SetBlipColour(blip, 46)
+        elseif playerJob == "sasp" then
+            SetBlipColour(blip, 40)
+        elseif playerJob == "saspr" then
+            SetBlipColour(blip, 25)
+        elseif playerJob == "sdso" then
+            SetBlipColour(blip, 37)
+        elseif playerJob == "pbso" then
+            SetBlipColour(blip, 27)
         else
-            SetBlipColour(blip, 5)
+            SetBlipColour(blip, 8)
         end
         SetBlipAsShortRange(blip, true)
         BeginTextCommandSetBlipName('STRING')
@@ -45,6 +56,7 @@ AddEventHandler('QBCore:Client:OnPlayerLoaded', function()
     PlayerJob = player.job
     onDuty = player.job.onduty
     isHandcuffed = false
+    TriggerServerEvent("QBCore:Server:SetMetaData", "ishandcuffed", false)
     TriggerServerEvent("police:server:SetHandcuffStatus", false)
     TriggerServerEvent("police:server:UpdateBlips")
     TriggerServerEvent("police:server:UpdateCurrentCops")
@@ -71,9 +83,9 @@ AddEventHandler('QBCore:Client:OnPlayerLoaded', function()
         TriggerEvent('qb-clothing:client:loadOutfit', trackerClothingData)
     end
 
-    if PlayerJob and PlayerJob.name ~= "police" then
+    if PlayerJob and (PlayerJob.name ~= "police" or PlayerJob.name ~= "bcso" or PlayerJob.name ~= "sasp" or PlayerJob.name ~= "saspr" or PlayerJob.name ~= "sdso" or PlayerJob.name ~= "pbso") then
         if DutyBlips then
-            for _, v in pairs(DutyBlips) do
+            for k, v in pairs(DutyBlips) do
                 RemoveBlip(v)
             end
         end
@@ -91,7 +103,7 @@ RegisterNetEvent('QBCore:Client:OnPlayerUnload', function()
     ClearPedTasks(PlayerPedId())
     DetachEntity(PlayerPedId(), true, false)
     if DutyBlips then
-        for _, v in pairs(DutyBlips) do
+        for k, v in pairs(DutyBlips) do
             RemoveBlip(v)
         end
         DutyBlips = {}
@@ -99,23 +111,23 @@ RegisterNetEvent('QBCore:Client:OnPlayerUnload', function()
 end)
 
 RegisterNetEvent('QBCore:Client:OnJobUpdate', function(JobInfo)
-    if JobInfo.name == "police" and PlayerJob.name ~= "police" then
-        if JobInfo.onduty then
+    PlayerJob = JobInfo
+    TriggerServerEvent("police:server:UpdateBlips")
+    if JobInfo.name == "police" or JobInfo.name == "bcso" or JobInfo.name == "sasp" or JobInfo.name == "saspr" or JobInfo.name == "sdso" or JobInfo.name == "pbso" then
+        if PlayerJob.onduty then
             TriggerServerEvent("QBCore:ToggleDuty")
             onDuty = false
         end
     end
 
-    if JobInfo.name ~= "police" then
+    if (PlayerJob ~= nil) and PlayerJob.name ~= "police" or PlayerJob.name ~= "bcso" or PlayerJob.name ~= "sasp" or PlayerJob.name ~= "saspr" or PlayerJob.name ~= "sdso" or PlayerJob.name ~= "pbso" then
         if DutyBlips then
-            for _, v in pairs(DutyBlips) do
+            for k, v in pairs(DutyBlips) do
                 RemoveBlip(v)
             end
         end
         DutyBlips = {}
     end
-    PlayerJob = JobInfo
-    TriggerServerEvent("police:server:UpdateBlips")
 end)
 
 RegisterNetEvent('police:client:sendBillingMail', function(amount)
@@ -135,16 +147,16 @@ RegisterNetEvent('police:client:sendBillingMail', function(amount)
 end)
 
 RegisterNetEvent('police:client:UpdateBlips', function(players)
-    if PlayerJob and (PlayerJob.name == 'police' or PlayerJob.name == 'ambulance') and
+    if PlayerJob and (PlayerJob.name == 'police' or PlayerJob.name == 'ambulance' or PlayerJob.name == 'bcso' or PlayerJob.name == 'sasp' or PlayerJob.name == 'saspr' or PlayerJob.name == 'sdso' or PlayerJob.name == 'pbso') and
         onDuty then
         if DutyBlips then
-            for _, v in pairs(DutyBlips) do
+            for k, v in pairs(DutyBlips) do
                 RemoveBlip(v)
             end
         end
         DutyBlips = {}
         if players then
-            for _, data in pairs(players) do
+            for k, data in pairs(players) do
                 local id = GetPlayerFromServerId(data.source)
                 CreateDutyBlips(id, data.label, data.job, data.location)
 
@@ -192,6 +204,7 @@ RegisterNetEvent('police:client:policeAlert', function(coords, text)
 end)
 
 RegisterNetEvent('police:client:SendToJail', function(time)
+    print("sending")
     TriggerServerEvent("police:server:SetHandcuffStatus", false)
     isHandcuffed = false
     isEscorted = false
@@ -200,15 +213,9 @@ RegisterNetEvent('police:client:SendToJail', function(time)
     TriggerEvent("prison:client:Enter", time)
 end)
 
-RegisterNetEvent('police:client:SendPoliceEmergencyAlert', function()
-    local Player = QBCore.Functions.GetPlayerData()
-    TriggerServerEvent('police:server:policeAlert', Lang:t('info.officer_down', {lastname = Player.charinfo.lastname, callsign = Player.metadata.callsign}))
-    TriggerServerEvent('hospital:server:ambulanceAlert', Lang:t('info.officer_down', {lastname = Player.charinfo.lastname, callsign = Player.metadata.callsign}))
-end)
-
 -- Threads
 CreateThread(function()
-    for _, station in pairs(Config.Locations["stations"]) do
+    for k, station in pairs(Config.Locations["stations"]) do
         local blip = AddBlipForCoord(station.coords.x, station.coords.y, station.coords.z)
         SetBlipSprite(blip, 60)
         SetBlipAsShortRange(blip, true)
@@ -218,4 +225,63 @@ CreateThread(function()
         AddTextComponentString(station.label)
         EndTextCommandSetBlipName(blip)
     end
+end)
+
+RegisterNetEvent('police:client:takeoffmask')
+AddEventHandler('police:client:takeoffmask', function()
+    local player, distance = GetClosestPlayer()
+    if player ~= -1 and distance < 2.5 then
+        local playerId = GetPlayerServerId(player)
+        QBCore.Functions.GetPlayerData(function(PlayerData)
+            if PlayerData.job.name == "police" or PlayerData.job.name == "bcso" then
+                TriggerServerEvent("police:server:takeoffmask", playerId)
+            end
+        end)
+    else
+        QBCore.Functions.Notify("No one nearby!", "error")
+    end
+end)
+
+RegisterNetEvent('police:client:takeoffmaskc')
+AddEventHandler('police:client:takeoffmaskc', function()
+    local ad = "missheist_agency2ahelmet"
+    loadAnimDict(ad)
+    RequestAnimDict(dict)
+    TaskPlayAnim(PlayerPedId(), ad, "take_off_helmet_stand", 8.0, 1.0, -1, 49, 0, 0, 0, 0 )
+    Wait(600)
+    ClearPedSecondaryTask(PlayerPedId())
+    SetPedComponentVariation(PlayerPedId(), 1, 0, 0, 2)
+    QBCore.Functions.Notify("Taken your mask off", "error")
+end)
+
+-- rifle rack in interceptor vehicles
+RegisterNetEvent('police:client:riflerack', function()
+    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+    QBCore.Functions.GetPlayerData(function(PlayerData)
+        if PlayerData.job.name == "police" then
+            if onDuty then
+                if GetEntityModel(vehicle) == `npolchal` or GetEntityModel(vehicle) == `npolvette` or GetEntityModel(vehicle) == `npolstang` or GetEntityModel(vehicle) == `npolvic` or GetEntityModel(vehicle) == `npolchar` or GetEntityModel(vehicle) == `npolexp` or GetEntityModel(vehicle) == `npolretinue` then 
+                    TriggerEvent('qb-inventory:client:set:busy', true)
+                    QBCore.Functions.Progressbar("open-rifle-rack", "Opening Rifle Rack...", 2500, false, true, {
+                        disableMovement = true,
+                        disableCarMovement = false,
+                        disableMouse = false,
+                        disableCombat = true,
+                    }, {}, {}, {}, function() -- Done
+                        TriggerServerEvent("inventory:server:OpenInventory", "stash", 'Riflerack_'..QBCore.Functions.GetPlayerData().citizenid, {maxweight = 26000, slots = 2})
+                        TriggerEvent("inventory:client:SetCurrentStash", 'Riflerack_'..QBCore.Functions.GetPlayerData().citizenid)
+                    end, function()
+                        TriggerEvent('qb-inventory:client:set:busy', false)
+                        QBCore.Functions.Notify("Canceled..", "error")
+                    end)
+                else
+                    QBCore.Functions.Notify("Thats not a Police Vehicle!", "error")
+                end
+            else
+                QBCore.Functions.Notify("You have to be On Duty!", "error")
+            end
+        else
+            QBCore.Functions.Notify("You are not Police Officer!", "error")
+        end
+    end)
 end)

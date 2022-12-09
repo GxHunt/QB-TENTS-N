@@ -4,7 +4,7 @@ author "Pickle Mods#0001"
 description "A multi-framework farming resource with synced growth."
 
 shared_scripts {
-	"@ox_lib/init.lua", -- COMMENT THIS OUT IF NOT USING OX_LIB.
+	-- "@ox_lib/init.lua", -- COMMENT THIS OUT IF NOT USING OX_LIB.
 	"config.lua",
 	"bridge/**/shared.lua",
 	"modules/**/shared.lua",

@@ -21,13 +21,11 @@ Police Job for QB-Core Framework :police_officer:
 
 ## Dependencies
 - [qb-core](https://github.com/qbcore-framework/qb-core)
-- [qb-bossmenu](https://github.com/qbcore-framework/qb-bossmenu)  (Deprecated) - For the boss menu
-- [qb-management](https://github.com/qbcore-framework/qb-management) (Replaces qb-bossmenu) - For the boss/gang menu
+- [qb-management](https://github.com/qbcore-framework/qb-management) - For the boss menu
 - [qb-garages](https://github.com/qbcore-framework/qb-garages) - For the vehicle spawner
 - [qb-clothing](https://github.com/qbcore-framework/qb-clothing) - For the locker room
 - [qb-phone](https://github.com/qbcore-framework/qb-phone) - For the MEOS app and notifications etc.
-- [qb-log](https://github.com/qbcore-framework/qb-logs) - (Deprecated) - For logging certain events
-- [qb-smallresources](https://github.com/qbcore-framework/qb-smallresources) (Replaces qb-log) - qb-log was added to qb-smallresources
+- [qb-log](https://github.com/qbcore-framework/qb-logs) - For logging certain events
 - [qb-menu](https://github.com/qbcore-framework/qb-menu) - For the vehicle menus
 - [qb-input](https://github.com/qbcore-framework/qb-input) - For accessing evidence stashes
 
@@ -67,7 +65,9 @@ Police Job for QB-Core Framework :police_officer:
 - /spikestrip - Places spike strip on ground.
 - /pobject [pion/barier/schotten/tent/light/delete] - Places or deletes an object on/from ground.
 - /cuff - Cuffs/Uncuffs nearby player
+- /palert [text] - Sends an alert.
 - /escort - Escorts nearby plyer.
+- /mdt - Opens the MDT.
 - /callsign [text] - Sets the player a callsign on database.
 - /clearcasings - Clears nearby bullet casings.
 - /jail [id] [time] - Sends a player to the jail.

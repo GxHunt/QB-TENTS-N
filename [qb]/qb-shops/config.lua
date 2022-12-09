@@ -917,6 +917,38 @@ Config.Products = {
             type = "item",
             slot = 22,
         },
+        [23] = {
+            name = "screwdriver",
+            price = 250,
+            amount = 50,
+            info = {},
+            type = "item",
+            slot = 23,
+        },
+        [24] = {
+            name = "wd40",
+            price = 40,
+            amount = 50,
+            info = {},
+            type = "item",
+            slot = 24,
+        },
+        [25] = {
+            name = "blowtorch",
+            price = 1000,
+            amount = 50,
+            info = {},
+            type = "item",
+            slot = 25,
+        },	
+        [26] = {
+            name = "weapon_battleaxe",
+            price = 750,
+            amount = 50,
+            info = {},
+            type = "item",
+            slot = 26,
+        },
     },
     ["gacha"] = {
       [1] = {

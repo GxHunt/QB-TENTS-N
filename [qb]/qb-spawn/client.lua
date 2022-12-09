@@ -137,7 +137,6 @@ RegisterNUICallback('chooseAppa', function(data, cb)
     DestroyCam(cam2, true)
     SetEntityVisible(ped, true)
     cb('ok')
-    TriggerEvent("backitems:start")
 end)
 
 local function PreSpawnPlayer()
@@ -185,7 +184,7 @@ RegisterNUICallback('spawnplayer', function(data, cb)
         TriggerServerEvent('QBCore:Server:OnPlayerLoaded')
         TriggerEvent('QBCore:Client:OnPlayerLoaded')
         PostSpawnPlayer()
-        TriggerEvent("backitems:start")
+
     elseif type == "house" then
         PreSpawnPlayer()
         TriggerEvent('qb-houses:client:enterOwnedHouse', location)
@@ -194,7 +193,7 @@ RegisterNUICallback('spawnplayer', function(data, cb)
         TriggerServerEvent('qb-houses:server:SetInsideMeta', 0, false)
         TriggerServerEvent('qb-apartments:server:SetInsideMeta', 0, 0, false)
         PostSpawnPlayer()
-        TriggerEvent("backitems:start")
+
     elseif type == "normal" then
         local pos = QB.Spawns[location].coords
         PreSpawnPlayer()
@@ -207,7 +206,7 @@ RegisterNUICallback('spawnplayer', function(data, cb)
         SetEntityCoords(ped, pos.x, pos.y, pos.z)
         SetEntityHeading(ped, pos.w)
         PostSpawnPlayer()
-        TriggerEvent("backitems:start")
+
     end
     cb('ok')
 end)

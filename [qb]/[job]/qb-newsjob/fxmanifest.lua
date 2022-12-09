@@ -4,12 +4,7 @@ game 'gta5'
 description 'QB-NewsJob'
 version '1.0.1'
 
-shared_scripts {
-    'config.lua',
-    '@qb-core/shared/locale.lua',
-    'locales/en.lua',
-    'locales/*.lua',
-}
+shared_script 'config.lua'
 
 client_scripts {
     'client/main.lua',
