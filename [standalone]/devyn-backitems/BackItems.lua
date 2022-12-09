@@ -1,5 +1,15 @@
 
 BackItems = {
+    ["fishingrod"] = {
+        model="prop_fishing_rod_01", 
+        back_bone = 24818,
+        x = -0.1,
+        y = -0.10,
+        z = 0.1,
+        x_rotation = 0.0,
+        y_rotation = 90.0,
+        z_rotation = 0.0,
+    },
     ["skateboard"] = {
         model="v_res_skateboard", 
         back_bone = 24818,

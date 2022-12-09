@@ -6,7 +6,7 @@ local painkillerAmount = 0
 
 local function DoBleedAlert()
     if not isDead and tonumber(isBleeding) > 0 then
-        QBCore.Functions.Notify(Lang:t('info.bleed_alert', {bleedstate = Config.BleedingStates[tonumber(isBleeding)].label}), "error", 5000)
+        QBCore.Functions.Notify("You are "..Config.BleedingStates[tonumber(isBleeding)].label, "error", 5000)
     end
 end
 
@@ -47,14 +47,14 @@ RegisterNetEvent('hospital:client:UseIfaks', function()
 		flags = 49,
     }, {}, {}, function() -- Done
         StopAnimTask(ped, "mp_suicide", "pill", 1.0)
-        TriggerServerEvent("hospital:server:removeIfaks")
+        TriggerServerEvent("QBCore:Server:RemoveItem", "ifaks", 1)
         TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items["ifaks"], "remove")
         TriggerServerEvent('hud:server:RelieveStress', math.random(12, 24))
         SetEntityHealth(ped, GetEntityHealth(ped) + 10)
+        onPainKillers = true
         if painkillerAmount < 3 then
             painkillerAmount = painkillerAmount + 1
         end
-        PainKillerLoop()
         if math.random(1, 100) < 50 then
             RemoveBleed(1)
         end
@@ -77,7 +77,7 @@ RegisterNetEvent('hospital:client:UseBandage', function()
 		flags = 49,
     }, {}, {}, function() -- Done
         StopAnimTask(ped, "anim@amb@business@weed@weed_inspecting_high_dry@", "weed_inspecting_high_base_inspector", 1.0)
-        TriggerServerEvent("hospital:server:removeBandage")
+        TriggerServerEvent("QBCore:Server:RemoveItem", "bandage", 1)
         TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items["bandage"], "remove")
         SetEntityHealth(ped, GetEntityHealth(ped) + 10)
         if math.random(1, 100) < 50 then
@@ -105,44 +105,41 @@ RegisterNetEvent('hospital:client:UsePainkillers', function()
 		flags = 49,
     }, {}, {}, function() -- Done
         StopAnimTask(ped, "mp_suicide", "pill", 1.0)
-        TriggerServerEvent("hospital:server:removePainkillers")
+        TriggerServerEvent("QBCore:Server:RemoveItem", "painkillers", 1)
         TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items["painkillers"], "remove")
+        onPainKillers = true
         if painkillerAmount < 3 then
             painkillerAmount = painkillerAmount + 1
         end
-        PainKillerLoop()
     end, function() -- Cancel
         StopAnimTask(ped, "mp_suicide", "pill", 1.0)
         QBCore.Functions.Notify(Lang:t('error.canceled'), "error")
     end)
-end)
+end) 
 
 -- Threads
 
-function PainKillerLoop(pkAmount)
-    if not onPainKillers then
-        if pkAmount then
-            painkillerAmount = pkAmount
-        end
-        onPainKillers = true
-        while onPainKillers do
-            Wait(1)
+CreateThread(function()
+    while true do
+        Wait(1)
+        if onPainKillers then
             painkillerAmount = painkillerAmount - 1
             Wait(Config.PainkillerInterval * 1000)
             if painkillerAmount <= 0 then
                 painkillerAmount = 0
                 onPainKillers = false
             end
+        else
+            Wait(3000)
         end
     end
-end
-exports('PainKillerLoop', PainKillerLoop)
+end)
 
 CreateThread(function()
 	while true do
 		if #injured > 0 then
 			local level = 0
-			for _, v in pairs(injured) do
+			for k, v in pairs(injured) do
 				if v.severity > level then
 					level = v.severity
 				end

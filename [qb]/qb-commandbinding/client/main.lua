@@ -1,13 +1,7 @@
 local QBCore = exports['qb-core']:GetCoreObject()
 local keyPressed = false
 local availableKeys = {
-    {289, "F2"},
-    {170, "F3"},
-    {166, "F5"},
-    {167, "F6"},
-    {168, "F7"},
-    {56, "F9"},
-    {57, "F10"},
+    
 }
 
 function openBindingMenu()

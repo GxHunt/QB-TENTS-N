@@ -1,7 +1,0 @@
-{
-    "Lua.diagnostics.disable": [
-        "undefined-global",
-        "trailing-space"
-    ],
-    "lua.targetVersion": "5.2"
-}

@@ -7,28 +7,28 @@ version '1.0.0'
 shared_scripts {
     'config.lua',
     '@qb-core/shared/locale.lua',
-    'locales/en.lua',
-    'locales/*.lua'
+    'locales/en.lua' -- Change this to your preferred language
 }
 
 client_scripts {
-	'@PolyZone/client.lua',
-	'@PolyZone/BoxZone.lua',
-	'@PolyZone/ComboZone.lua',
 	'client/main.lua',
 	'client/camera.lua',
 	'client/interactions.lua',
 	'client/job.lua',
 	'client/heli.lua',
-	--'client/anpr.lua',
+	'client/gopros.lua',
 	'client/evidence.lua',
 	'client/objects.lua',
-	'client/tracker.lua'
+	'client/policeimpound.lua',
+	'client/tracker.lua',
+	'client/gsr.lua'
 }
 
 server_scripts {
 	'@oxmysql/lib/MySQL.lua',
-	'server/main.lua'
+	'server/main.lua',
+	'server/gopros.lua',
+	'server/gsr.lua'
 }
 
 ui_page 'html/index.html'

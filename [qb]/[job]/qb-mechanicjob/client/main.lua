@@ -1,24 +1,29 @@
 QBCore = exports['qb-core']:GetCoreObject()
-VehicleStatus = {}
 
+local ModdedVehicles = {}
+VehicleStatus = {}
 local ClosestPlate = nil
 local PlayerJob = {}
 local onDuty = false
 local effectTimer = 0
-local openingDoor = false
-
--- zone check
-local isInsideDutyZone = false
-local isInsideStashZone = false
-local isInsideGarageZone = false
-local isInsideVehiclePlateZone = false
-local plateZones = {}
-local plateTargetBoxID = 'plateTarget_'
-local dutyTargetBoxID = 'dutyTarget'
-local stashTargetBoxID = 'stashTarget'
-
 
 -- Exports
+
+AddEventHandler('onResourceStart', function(resource)
+    PlayerData = QBCore.Functions.GetPlayerData()
+    PlayerJob = PlayerData.job
+    onDuty = PlayerJob.onduty
+end)
+
+AddEventHandler('QBCore:Client:OnPlayerLoaded', function()
+    PlayerData = QBCore.Functions.GetPlayerData()
+    PlayerJob = PlayerData.job
+    onDuty = PlayerJob.onduty
+end)
+
+RegisterNetEvent('QBCore:Client:OnJobUpdate', function(job)
+    PlayerJob = job
+end)
 
 local function GetVehicleStatusList(plate)
     local retval = nil
@@ -44,200 +49,7 @@ exports('GetVehicleStatusList', GetVehicleStatusList)
 exports('GetVehicleStatus', GetVehicleStatus)
 exports('SetVehicleStatus', SetVehicleStatus)
 
-
 -- Functions
-
-local function DeleteTarget(id)
-    if Config.UseTarget then
-        exports['qb-target']:RemoveZone(id)
-    else
-        if Config.Targets[id] and Config.Targets[id].zone then
-            Config.Targets[id].zone:destroy();
-        end
-    end
-
-    Config.Targets[id] = nil
-end
-
-local function RegisterDutyTarget()
-    local coords = Config.Locations['duty']
-    local boxData = Config.Targets[dutyTargetBoxID] or {}
-
-    if boxData and boxData.created then
-        return
-    end
-
-    if PlayerJob.type ~= 'mechanic' then
-        return
-    end
-
-    local label = Lang:t('labels.sign_in')
-    if onDuty then
-        label = Lang:t('labels.sign_off')
-    end
-
-    if Config.UseTarget then
-        exports['qb-target']:AddBoxZone(dutyTargetBoxID, coords, 1.5, 1.5, {
-            name = dutyTargetBoxID,
-            heading = 0,
-            debugPoly = false,
-            minZ = coords.z - 1.0,
-            maxZ = coords.z + 1.0,
-        }, {
-            options = {{
-                type = "server",
-                event = "QBCore:ToggleDuty",
-                label = label,
-            }},
-            distance = 2.0
-        })
-
-        Config.Targets[dutyTargetBoxID] = {created = true}
-    else
-        local zone = BoxZone:Create(coords, 1.5, 1.5, {
-            name = dutyTargetBoxID,
-            heading = 0,
-            debugPoly = false,
-            minZ = coords.z - 1.0,
-            maxZ = coords.z + 1.0,
-        })
-        zone:onPlayerInOut(function (isPointInside)
-            if isPointInside then
-                exports['qb-core']:DrawText("[E] " .. label, 'left')
-            else
-                exports['qb-core']:HideText()
-            end
-
-            isInsideDutyZone = isPointInside
-        end)
-
-        Config.Targets[dutyTargetBoxID] = {created = true, zone = zone}
-    end
-end
-
-local function RegisterStashTarget()
-    local coords = Config.Locations['stash']
-    local boxData = Config.Targets[stashTargetBoxID] or {}
-
-    if boxData and boxData.created then
-        return
-    end
-
-    if PlayerJob.type ~= 'mechanic' then
-        return
-    end
-
-    if Config.UseTarget then
-        exports['qb-target']:AddBoxZone(stashTargetBoxID, coords, 1.5, 1.5, {
-            name = stashTargetBoxID,
-            heading = 0,
-            debugPoly = false,
-            minZ = coords.z - 1.0,
-            maxZ = coords.z + 1.0,
-        }, {
-            options = {{
-                type = "client",
-                event = "qb-mechanicjob:client:target:OpenStash",
-                label = Lang:t('labels.o_stash'),
-            }},
-            distance = 2.0
-        })
-
-        Config.Targets[stashTargetBoxID] = {created = true}
-    else
-        local zone = BoxZone:Create(coords, 1.5, 1.5, {
-            name = stashTargetBoxID,
-            heading = 0,
-            debugPoly = false,
-            minZ = coords.z - 1.0,
-            maxZ = coords.z + 1.0,
-        })
-        zone:onPlayerInOut(function (isPointInside)
-            if isPointInside then
-                exports['qb-core']:DrawText(Lang:t('labels.o_stash'), 'left')
-            else
-                exports['qb-core']:HideText()
-            end
-
-            isInsideStashZone = isPointInside
-        end)
-
-        Config.Targets[stashTargetBoxID] = {created = true, zone = zone}
-    end
-end
-
-local function RegisterGarageZone()
-    local coords = Config.Locations['vehicle']
-    local vehicleZone = BoxZone:Create(vector3(coords.x, coords.y, coords.z), 5, 15, {
-        name = 'vehicleZone',
-        heading = 340.0,
-        minZ = coords.z - 1.0,
-        maxZ = coords.z + 5.0,
-        debugPoly = false
-    })
-
-    vehicleZone:onPlayerInOut(function (isPointInside)
-        if isPointInside and onDuty then
-            local inVehicle = IsPedInAnyVehicle(PlayerPedId())
-            if inVehicle then
-                exports['qb-core']:DrawText(Lang:t('labels.h_vehicle'), 'left')
-            else
-                exports['qb-core']:DrawText(Lang:t('labels.g_vehicle'), 'left')
-            end
-        else
-            exports['qb-core']:HideText()
-        end
-
-        isInsideGarageZone = isPointInside
-    end)
-end
-
-function DestroyVehiclePlateZone(id)
-    if plateZones[id] then
-        plateZones[id]:destroy()
-        plateZones[id] = nil
-    end
-end
-
-function RegisterVehiclePlateZone(id, plate)
-    local coords = plate.coords
-    local boxData = plate.boxData
-    local plateZone = BoxZone:Create(vector3(coords.x, coords.y, coords.z), boxData.length, boxData.width, {
-        name = plateTargetBoxID .. id,
-        heading = boxData.heading,
-        minZ = coords.z - 1.0,
-        maxZ = coords.z + 3.0,
-        debugPoly = boxData.debugPoly
-    })
-
-    plateZones[id] = plateZone
-
-    plateZone:onPlayerInOut(function (isPointInside)
-        if isPointInside and onDuty then
-            if plate.AttachedVehicle then
-                exports['qb-core']:DrawText(Lang:t('labels.o_menu'), 'left')
-            else
-                if IsPedInAnyVehicle(PlayerPedId()) then
-                    exports['qb-core']:DrawText(Lang:t('labels.work_v'), 'left')
-                end
-            end
-        else
-            exports['qb-core']:HideText()
-        end
-
-        isInsideVehiclePlateZone = isPointInside
-    end)
-end
-
-local function SetVehiclePlateZones()
-    if Config.Plates and next(Config.Plates) then
-        for id, plate in pairs(Config.Plates) do
-            RegisterVehiclePlateZone(id, plate)
-        end
-    else
-        print('No vehicle plates configured')
-    end
-end
 
 local function loadAnimDict(dict)
     while (not HasAnimDictLoaded(dict)) do
@@ -265,7 +77,7 @@ local function SetClosestPlate()
 end
 
 local function ScrapAnim(time)
-    time = time / 1000
+    local time = time / 1000
     loadAnimDict("mp_car_bomb")
     TaskPlayAnim(PlayerPedId(), "mp_car_bomb", "car_bomb_mechanic" ,3.0, 3.0, -1, 16, 0, false, false, false)
     openingDoor = true
@@ -425,17 +237,17 @@ local function ApplyEffects(vehicle)
             end
 
             if VehicleStatus[plate]["fuel"] <= 80 and (chance >= 81 and chance <= 100) then
-                local fuel = exports['LegacyFuel']:GetFuel(vehicle)
+                local fuel = exports['qb-fuel']:GetFuel(vehicle)
                 if VehicleStatus[plate]["fuel"] <= 80 and VehicleStatus[plate]["fuel"] >= 60 then
-                    exports['LegacyFuel']:SetFuel(vehicle, fuel - 2.0)
+                    exports['qb-fuel']:SetFuel(vehicle, fuel - 2.0)
                 elseif VehicleStatus[plate]["fuel"] <= 59 and VehicleStatus[plate]["fuel"] >= 40 then
-                    exports['LegacyFuel']:SetFuel(vehicle, fuel - 4.0)
+                    exports['qb-fuel']:SetFuel(vehicle, fuel - 4.0)
                 elseif VehicleStatus[plate]["fuel"] <= 39 and VehicleStatus[plate]["fuel"] >= 20 then
-                    exports['LegacyFuel']:SetFuel(vehicle, fuel - 6.0)
+                    exports['qb-fuel']:SetFuel(vehicle, fuel - 6.0)
                 elseif VehicleStatus[plate]["fuel"] <= 19 and VehicleStatus[plate]["fuel"] >= 6 then
-                    exports['LegacyFuel']:SetFuel(vehicle, fuel - 8.0)
+                    exports['qb-fuel']:SetFuel(vehicle, fuel - 8.0)
                 else
-                    exports['LegacyFuel']:SetFuel(vehicle, fuel - 10.0)
+                    exports['qb-fuel']:SetFuel(vehicle, fuel - 10.0)
                 end
             end
         end
@@ -450,49 +262,56 @@ local function SendStatusMessage(statusList)
     if statusList ~= nil then
         TriggerEvent('chat:addMessage', {
             template = '<div class="chat-message normal"><div class="chat-message-body"><strong>{0}:</strong><br><br> <strong>'.. Config.ValuesLabels["engine"] ..' (engine):</strong> {1} <br><strong>'.. Config.ValuesLabels["body"] ..' (body):</strong> {2} <br><strong>'.. Config.ValuesLabels["radiator"] ..' (radiator):</strong> {3} <br><strong>'.. Config.ValuesLabels["axle"] ..' (axle):</strong> {4}<br><strong>'.. Config.ValuesLabels["brakes"] ..' (brakes):</strong> {5}<br><strong>'.. Config.ValuesLabels["clutch"] ..' (clutch):</strong> {6}<br><strong>'.. Config.ValuesLabels["fuel"] ..' (fuel):</strong> {7}</div></div>',
-            args = {Lang:t('labels.veh_status'), round(statusList["engine"]) .. "/" .. Config.MaxStatusValues["engine"] .. " ("..QBCore.Shared.Items["advancedrepairkit"]["label"]..")", round(statusList["body"]) .. "/" .. Config.MaxStatusValues["body"] .. " ("..QBCore.Shared.Items[Config.RepairCost["body"]]["label"]..")", round(statusList["radiator"]) .. "/" .. Config.MaxStatusValues["radiator"] .. ".0 ("..QBCore.Shared.Items[Config.RepairCost["radiator"]]["label"]..")", round(statusList["axle"]) .. "/" .. Config.MaxStatusValues["axle"] .. ".0 ("..QBCore.Shared.Items[Config.RepairCost["axle"]]["label"]..")", round(statusList["brakes"]) .. "/" .. Config.MaxStatusValues["brakes"] .. ".0 ("..QBCore.Shared.Items[Config.RepairCost["brakes"]]["label"]..")", round(statusList["clutch"]) .. "/" .. Config.MaxStatusValues["clutch"] .. ".0 ("..QBCore.Shared.Items[Config.RepairCost["clutch"]]["label"]..")", round(statusList["fuel"]) .. "/" .. Config.MaxStatusValues["fuel"] .. ".0 ("..QBCore.Shared.Items[Config.RepairCost["fuel"]]["label"]..")"}
+            args = {'Vehicle Status', round(statusList["engine"]) .. "/" .. Config.MaxStatusValues["engine"] .. " ("..QBCore.Shared.Items["advancedrepairkit"]["label"]..")", round(statusList["body"]) .. "/" .. Config.MaxStatusValues["body"] .. " ("..QBCore.Shared.Items[Config.RepairCost["body"]]["label"]..")", round(statusList["radiator"]) .. "/" .. Config.MaxStatusValues["radiator"] .. ".0 ("..QBCore.Shared.Items[Config.RepairCost["radiator"]]["label"]..")", round(statusList["axle"]) .. "/" .. Config.MaxStatusValues["axle"] .. ".0 ("..QBCore.Shared.Items[Config.RepairCost["axle"]]["label"]..")", round(statusList["brakes"]) .. "/" .. Config.MaxStatusValues["brakes"] .. ".0 ("..QBCore.Shared.Items[Config.RepairCost["brakes"]]["label"]..")", round(statusList["clutch"]) .. "/" .. Config.MaxStatusValues["clutch"] .. ".0 ("..QBCore.Shared.Items[Config.RepairCost["clutch"]]["label"]..")", round(statusList["fuel"]) .. "/" .. Config.MaxStatusValues["fuel"] .. ".0 ("..QBCore.Shared.Items[Config.RepairCost["fuel"]]["label"]..")"}
         })
     end
 end
 
 local function OpenMenu()
-    local openMenu = {
+    local OpenMenu = {
         {
-            header = Lang:t('lift_menu.header_menu'),
+            header = "Vehicle Options",
             isMenuHeader = true
-        }, {
-            header = Lang:t('lift_menu.header_vehdc'),
-            txt = Lang:t('lift_menu.desc_vehdc'),
+        },
+        {
+            header = "Disconnect Vehicle",
+            txt = "Unattach Vehicle in Lift",
             params = {
                 event = "qb-mechanicjob:client:UnattachVehicle",
             }
-        }, {
-            header = Lang:t('lift_menu.header_stats'),
-            txt = Lang:t('lift_menu.desc_stats'),
+        },
+        {
+            header = "Check Status",
+            txt = "Check Vehicle Status",
             params = {
                 event = "qb-mechanicjob:client:CheckStatus",
                 args = {
                     number = 1,
                 }
             }
-        }, {
-            header = Lang:t('lift_menu.header_parts'),
-            txt = Lang:t('lift_menu.desc_parts'),
+        },    
+        {
+            header = "Vehicle Parts",
+            txt = "Repair Vehicle Parts",
             params = {
                 event = "qb-mechanicjob:client:PartsMenu",
                 args = {
                     number = 1,
                 }
             }
-        }, {
-            header = Lang:t('lift_menu.c_menu'),
+        },
+        
+        {
+            header = "⬅ Close Menu",
             txt = "",
             params = {
-                event = "qb-mechanicjob:client:target:CloseMenu",
+                event = "qb-menu:client:closeMenu",
             }
         },
+        
     }
-    exports['qb-menu']:openMenu(openMenu)
+
+    exports['qb-menu']:openMenu(OpenMenu)
 end
 
 local function PartsMenu()
@@ -528,19 +347,20 @@ local function PartsMenu()
                 end
                 vehicleMenu[#vehicleMenu+1] = {
                     header = v,
-                    txt = Lang:t('parts_menu.status') .. percentage .. ".0% / 100.0%",
+                    txt = "Status: " .. percentage .. ".0% / 100.0%",
                     params = {
                         event = "qb-mechanicjob:client:NoDamage",
                     }
                 }
-            end
+            end                               
         end
         vehicleMenu[#vehicleMenu+1] = {
-            header = Lang:t('lift_menu.c_menu'),
+            header = "⬅ Close Menu",
             txt = "",
             params = {
                 event = "qb-menu:client:closeMenu"
             }
+    
         }
         exports['qb-menu']:openMenu(vehicleMenu)
     end
@@ -552,12 +372,12 @@ local function PartMenu(data)
     local part = data.parts
     local TestMenu1 = {
         {
-            header = Lang:t('parts_menu.menu_header'),
+            header = "Part Menu",
             isMenuHeader = true
         },
         {
             header = ""..partName.."",
-            txt = Lang:t('parts_menu.repair_op')..QBCore.Shared.Items[Config.RepairCostAmount[part].item]["label"].." "..Config.RepairCostAmount[part].costs.."x",
+            txt = "Repair : "..QBCore.Shared.Items[Config.RepairCostAmount[part].item]["label"].." "..Config.RepairCostAmount[part].costs.."x", 
             params = {
                 event = "qb-mechanicjob:client:RepairPart",
                 args = {
@@ -566,49 +386,52 @@ local function PartMenu(data)
             }
         },
         {
-            header = Lang:t('parts_menu.b_menu'),
-            txt = Lang:t('parts_menu.d_menu'),
+            header = "⬅ Back Menu",
+            txt = "Back to parts menu",
             params = {
                 event = "qb-mechanicjob:client:PartsMenu",
             }
         },
         {
-            header = Lang:t('parts_menu.c_menu'),
+            header = "⬅ Close Menu",
             txt = "",
             params = {
                 event = "qb-menu:client:closeMenu",
             }
         },
+        
     }
 
     exports['qb-menu']:openMenu(TestMenu1)
 end
 
 local function NoDamage()
-    local noDamage = {
+    local NoDamage = {
         {
-            header = Lang:t('nodamage_menu.header'),
+            header = "No Damage",
             isMenuHeader = true
         },
         {
-            header = Lang:t('nodamage_menu.bh_menu'),
-            txt = Lang:t('nodamage_menu.bd_menu'),
+            header = "Back Menu",
+            txt = "There Is No Damage To This Part!",
             params = {
                 event = "qb-mechanicjob:client:PartsMenu",
             }
         },
         {
-            header = Lang:t('nodamage_menu.c_menu'),
+            header = "⬅ Close Menu",
             txt = "",
             params = {
                 event = "qb-menu:client:closeMenu",
             }
         },
+        
     }
-    exports['qb-menu']:openMenu(noDamage)
+    exports['qb-menu']:openMenu(NoDamage)
 end
 
 local function UnattachVehicle()
+    local coords = Config.Locations["exit"]
     DoScreenFadeOut(150)
     Wait(150)
     FreezeEntityPosition(Config.Plates[ClosestPlate].AttachedVehicle, false)
@@ -619,10 +442,6 @@ local function UnattachVehicle()
     DoScreenFadeIn(250)
     Config.Plates[ClosestPlate].AttachedVehicle = nil
     TriggerServerEvent('qb-vehicletuning:server:SetAttachedVehicle', false, ClosestPlate)
-
-    DestroyVehiclePlateZone(ClosestPlate)
-    RegisterVehiclePlateZone(ClosestPlate, Config.Plates[ClosestPlate])
-
 end
 
 local function SpawnListVehicle(model)
@@ -633,15 +452,14 @@ local function SpawnListVehicle(model)
         w = Config.Locations["vehicle"].w,
     }
 
-    QBCore.Functions.TriggerCallback('QBCore:Server:SpawnVehicle', function(netId)
-        local veh = NetToVeh(netId)
+    QBCore.Functions.SpawnVehicle(model, function(veh)
         SetVehicleNumberPlateText(veh, "ACBV"..tostring(math.random(1000, 9999)))
         SetEntityHeading(veh, coords.w)
-        exports['LegacyFuel']:SetFuel(veh, 100.0)
+        exports['qb-fuel']:SetFuel(veh, 100.0)
         TaskWarpPedIntoVehicle(PlayerPedId(), veh, -1)
         TriggerEvent("vehiclekeys:client:SetOwner", QBCore.Functions.GetPlate(veh))
         SetVehicleEngineOn(veh, true, true)
-    end, model, coords, true)
+    end, coords, true)
 end
 
 local function VehicleList()
@@ -662,7 +480,7 @@ local function VehicleList()
                     spawnName = k
                 }
             }
-        }
+        }                              
     end
     vehicleMenu[#vehicleMenu+1] = {
         header = "⬅ Close Menu",
@@ -697,7 +515,7 @@ local function RepairPart(part)
         end
         if hasitem and countitem >= PartData.costs then
             TriggerEvent('animations:client:EmoteCommandStart', {"mechanic"})
-            QBCore.Functions.Progressbar("repair_part", Lang:t('labels.progress_bar') ..Config.ValuesLabels[part], math.random(5000, 10000), false, true, {
+            QBCore.Functions.Progressbar("repair_part", "Repairing " ..Config.ValuesLabels[part], math.random(5000, 10000), false, true, {
                 disableMovement = true,
                 disableCarMovement = true,
                 disableMouse = false,
@@ -711,27 +529,27 @@ local function RepairPart(part)
                     StashItems[indx].amount = countitem
                 end
                 TriggerEvent('qb-vehicletuning:client:RepaireeePart', part)
-                TriggerServerEvent('qb-inventory:server:SaveStashItems', "mechanicstash", StashItems)
+                TriggerServerEvent('qb-inventory:server:SaveStashItems', "tunerstash", StashItems)
                 SetTimeout(250, function()
                     PartsMenu()
                 end)
             end, function()
-                QBCore.Functions.Notify(Lang:t('notifications.rep_canceled'), "error")
+                QBCore.Functions.Notify("Repair Cancelled", "error")
             end)
         else
-            QBCore.Functions.Notify(Lang:t('notifications.not_materials'), 'error')
+            QBCore.Functions.Notify('There Are Not Enough Materials In The Safe', 'error')
         end
-    end, "mechanicstash")
+    end, "tunerstash")
 end
 
 
--- Events
 
-RegisterNetEvent("qb-mechanicjob:client:UnattachVehicle",function()
+-- Events
+RegisterNetEvent("qb-mechanicjob:client:UnattachVehicle",function(data)
     UnattachVehicle()
 end)
 
-RegisterNetEvent("qb-mechanicjob:client:PartsMenu",function()
+RegisterNetEvent("qb-mechanicjob:client:PartsMenu",function(data)
     PartsMenu()
 end)
 
@@ -739,16 +557,16 @@ RegisterNetEvent("qb-mechanicjob:client:PartMenu",function(data)
     PartMenu(data)
 end)
 
-RegisterNetEvent("qb-mechanicjob:client:NoDamage",function()
+RegisterNetEvent("qb-mechanicjob:client:NoDamage",function(data)
     NoDamage()
 end)
 
-RegisterNetEvent("qb-mechanicjob:client:CheckStatus",function()
+RegisterNetEvent("qb-mechanicjob:client:CheckStatus",function(data)
     CheckStatus()
 end)
 
 RegisterNetEvent("qb-mechanicjob:client:SpawnListVehicle",function(data)
-    local vehicleSpawnName = data.spawnName
+    local vehicleSpawnName=data.spawnName
     SpawnListVehicle(vehicleSpawnName)
 end)
 
@@ -761,7 +579,7 @@ RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()
     QBCore.Functions.GetPlayerData(function(PlayerData)
         PlayerJob = PlayerData.job
         if PlayerData.job.onduty then
-            if PlayerJob.type == 'mechanic' then
+            if PlayerData.job.name == "tuner" then
                 TriggerServerEvent("QBCore:ToggleDuty")
             end
         end
@@ -780,26 +598,10 @@ end)
 RegisterNetEvent('QBCore:Client:OnJobUpdate', function(JobInfo)
     PlayerJob = JobInfo
     onDuty = PlayerJob.onduty
-
-    DeleteTarget(dutyTargetBoxID)
-    DeleteTarget(stashTargetBoxID)
-    RegisterDutyTarget()
-
-    if onDuty then
-        RegisterStashTarget()
-    end
 end)
 
 RegisterNetEvent('QBCore:Client:SetDuty', function(duty)
     onDuty = duty
-
-    DeleteTarget(dutyTargetBoxID)
-    DeleteTarget(stashTargetBoxID)
-    RegisterDutyTarget()
-
-    if onDuty then
-        RegisterStashTarget()
-    end
 end)
 
 RegisterNetEvent('qb-vehicletuning:client:SetAttachedVehicle', function(veh, key)
@@ -818,24 +620,21 @@ RegisterNetEvent('qb-vehicletuning:client:RepaireeePart', function(part)
         TriggerServerEvent("vehiclemod:server:updatePart", plate, "engine", Config.MaxStatusValues[part])
     elseif part == "body" then
         local enhealth = GetVehicleEngineHealth(veh)
-        local realFuel = GetVehicleFuelLevel(veh)
         SetVehicleBodyHealth(veh, Config.MaxStatusValues[part])
         TriggerServerEvent("vehiclemod:server:updatePart", plate, "body", Config.MaxStatusValues[part])
         SetVehicleFixed(veh)
         SetVehicleEngineHealth(veh, enhealth)
-        if GetVehicleFuelLevel(veh) ~= realFuel then
-            SetVehicleFuelLevel(veh, realFuel)
-        end
     else
         TriggerServerEvent("vehiclemod:server:updatePart", plate, part, Config.MaxStatusValues[part])
     end
-    QBCore.Functions.Notify(Lang:t('notifications.partrep', {value = Config.ValuesLabels[part]}))
+    QBCore.Functions.Notify("The "..Config.ValuesLabels[part].." Is Repaired!")
 end)
+
 RegisterNetEvent('vehiclemod:client:setVehicleStatus', function(plate, status)
     VehicleStatus[plate] = status
 end)
 
-RegisterNetEvent('vehiclemod:client:getVehicleStatus', function()
+RegisterNetEvent('vehiclemod:client:getVehicleStatus', function(plate, status)
     if not (IsPedInAnyVehicle(PlayerPedId(), false)) then
         local veh = GetVehiclePedIsIn(PlayerPedId(), true)
         if veh ~= nil and veh ~= 0 then
@@ -847,19 +646,19 @@ RegisterNetEvent('vehiclemod:client:getVehicleStatus', function()
                     if VehicleStatus[plate] ~= nil then
                         SendStatusMessage(VehicleStatus[plate])
                     else
-                        QBCore.Functions.Notify(Lang:t('notifications.uknown'), "error")
+                        QBCore.Functions.Notify("Status Unknown", "error")
                     end
                 else
-                    QBCore.Functions.Notify(Lang:t('notifications.not_valid'), "error")
+                    QBCore.Functions.Notify("Not A Valid Vehicle", "error")
                 end
             else
-                QBCore.Functions.Notify(Lang:t('notifications.not_close'), "error")
+                QBCore.Functions.Notify("You Are Not Close Enough To The Vehicle", "error")
             end
         else
-            QBCore.Functions.Notify(Lang:t('notifications.veh_first'), "error")
+            QBCore.Functions.Notify("You Must Be In The Vehicle First", "error")
         end
     else
-        QBCore.Functions.Notify(Lang:t('notifications.outside'), "error")
+        QBCore.Functions.Notify("You Must Be Outside The Vehicle", "error")
     end
 end)
 
@@ -870,10 +669,10 @@ RegisterNetEvent('vehiclemod:client:fixEverything', function()
             local plate = QBCore.Functions.GetPlate(veh)
             TriggerServerEvent("vehiclemod:server:fixEverything", plate)
         else
-            QBCore.Functions.Notify(Lang:t('notifications.wrong_seat'), "error")
+            QBCore.Functions.Notify("You Are Not The Driver Or On A Bicycle", "error")
         end
     else
-        QBCore.Functions.Notify(Lang:t('notifications.not_vehicle'), "error")
+        QBCore.Functions.Notify("You Are Not In A Vehicle", "error")
     end
 end)
 
@@ -892,12 +691,13 @@ RegisterNetEvent('vehiclemod:client:setPartLevel', function(part, level)
                 TriggerServerEvent("vehiclemod:server:updatePart", plate, part, level)
             end
         else
-            QBCore.Functions.Notify(Lang:t('notifications.wrong_seat'), "error")
+            QBCore.Functions.Notify("You Are Not The Driver Or On A Bicycle", "error")
         end
     else
-        QBCore.Functions.Notify(Lang:t('notifications.wrong_seat'), "error")
+        QBCore.Functions.Notify("You Are Not The Driver Or On A Bicycle", "error")
     end
 end)
+local openingDoor = false
 
 RegisterNetEvent('vehiclemod:client:repairPart', function(part, level, needAmount)
     if not IsPedInAnyVehicle(PlayerPedId(), false) then
@@ -914,7 +714,7 @@ RegisterNetEvent('vehiclemod:client:repairPart', function(part, level, needAmoun
                             lockpickTime = lockpickTime / 10
                         end
                         ScrapAnim(lockpickTime)
-                        QBCore.Functions.Progressbar("repair_advanced", Lang:t('notifications.progress_bar'), lockpickTime, false, true, {
+                        QBCore.Functions.Progressbar("repair_advanced", "Repair Vehicle", lockpickTime, false, true, {
                             disableMovement = true,
                             disableCarMovement = true,
                             disableMouse = false,
@@ -932,143 +732,358 @@ RegisterNetEvent('vehiclemod:client:repairPart', function(part, level, needAmoun
                                 SetVehicleFixed(veh)
                                 SetVehicleEngineHealth(veh, enhealth)
                                 TriggerServerEvent("vehiclemod:server:updatePart", plate, part, GetVehicleBodyHealth(veh))
-                                TriggerServerEvent("qb-mechanicjob:server:removePart", part, needAmount)
+                                TriggerServerEvent("QBCore:Server:RemoveItem", Config.RepairCost[part], needAmount)
                                 TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items[Config.RepairCost[part]], "remove")
                             elseif part ~= "engine" then
                                 TriggerServerEvent("vehiclemod:server:updatePart", plate, part, GetVehicleStatus(plate, part) + level)
-                                TriggerServerEvent("qb-mechanicjob:server:removePart", part, level)
+                                TriggerServerEvent("QBCore:Server:RemoveItem", Config.RepairCost[part], level)
                                 TriggerEvent("inventory:client:ItemBox", QBCore.Shared.Items[Config.RepairCost[part]], "remove")
                             end
                         end, function() -- Cancel
                             openingDoor = false
                             ClearPedTasks(PlayerPedId())
-                            QBCore.Functions.Notify(Lang:t('notifications.process_canceled'), "error")
+                            QBCore.Functions.Notify("Process Canceled", "error")
                         end)
                     else
-                        QBCore.Functions.Notify(Lang:t('notifications.not_part'), "error")
+                        QBCore.Functions.Notify("Not A Valid Part", "error")
                     end
                 else
-                    QBCore.Functions.Notify(Lang:t('notifications.not_valid'), "error")
+                    QBCore.Functions.Notify("Not A Valid Vehicle", "error")
                 end
             else
-                QBCore.Functions.Notify(Lang:t('notifications.not_close'), "error")
+                QBCore.Functions.Notify("You Are Not Close Enough To The Vehicle", "error")
             end
         else
-            QBCore.Functions.Notify(Lang:t('notifications.veh_first'), "error")
+            QBCore.Functions.Notify("You Must Be In The Vehicle First", "error")
         end
     else
-        QBCore.Functions.Notify(Lang:t('notifications.not_vehicle'), "error")
+        QBCore.Functions.Notify("Youre Not In a Vehicle", "error")
     end
 end)
-
-RegisterNetEvent('qb-mechanicjob:client:target:OpenStash', function ()
-    TriggerEvent("inventory:client:SetCurrentStash", "mechanicstash")
-    TriggerServerEvent("inventory:server:OpenInventory", "stash", "mechanicstash", {
-        maxweight = 4000000,
-        slots = 500,
-    })
-end)
-
-RegisterNetEvent('qb-mechanicjob:client:target:CloseMenu', function()
-    DestroyVehiclePlateZone(ClosestPlate)
-    RegisterVehiclePlateZone(ClosestPlate, Config.Plates[ClosestPlate])
-
-    TriggerEvent('qb-menu:client:closeMenu')
-end)
-
 
 -- Threads
 
 CreateThread(function()
-    local wait = 500
-    while not LocalPlayer.state.isLoggedIn do
-        -- do nothing
-        Wait(wait)
+    while true do
+        if LocalPlayer.state.isLoggedIn then
+            SetClosestPlate()
+        end
+        Wait(1000)
     end
+end)
 
-    local Blip = AddBlipForCoord(Config.Locations["exit"].x, Config.Locations["exit"].y, Config.Locations["exit"].z)
+CreateThread(function()
+    local c = Config.Locations["exit"]
+    local Blip = AddBlipForCoord(c.x, c.y, c.z)
     SetBlipSprite (Blip, 446)
     SetBlipDisplay(Blip, 4)
     SetBlipScale  (Blip, 0.7)
     SetBlipAsShortRange(Blip, true)
-    SetBlipColour(Blip, 0)
+    SetBlipColour(Blip, 48)
     SetBlipAlpha(Blip, 0.7)
     BeginTextCommandSetBlipName("STRING")
-    AddTextComponentSubstringPlayerName(Lang:t('labels.job_blip'))
+    AddTextComponentSubstringPlayerName("6STR Tuner Shop")
     EndTextCommandSetBlipName(Blip)
+end)
 
-    RegisterGarageZone()
-    RegisterDutyTarget()
-    RegisterStashTarget()
-    SetVehiclePlateZones()
-
+CreateThread(function()
+    local alreadyEnteredZone = false
     while true do
-        wait = 500
-        SetClosestPlate()
+        inZone = false
+        local inRange = false
+        if LocalPlayer.state.isLoggedIn then
+            if PlayerJob.name == "tuner" then
+                local pos = GetEntityCoords(PlayerPedId())
+                local StashDistance = #(pos - Config.Locations["stash"])
 
-        if PlayerJob.type == 'mechanic' then
-
-            if isInsideDutyZone then
-                wait = 0
-                if IsControlJustPressed(0, 38) then
-                    TriggerServerEvent("QBCore:ToggleDuty")
-                end
-            end
-
-            if onDuty then
-                if isInsideStashZone then
-                    wait = 0
-                    if IsControlJustPressed(0, 38) then
-                        TriggerEvent("qb-mechanicjob:client:target:OpenStash")
+                if onDuty then
+                    if StashDistance < 20 then
+                        inRange = true
+                        if StashDistance < 3 then
+                            if IsControlJustReleased(0, 38) then
+                                TriggerEvent("inventory:client:SetCurrentStash", "tunerjobstash")
+                                TriggerServerEvent("inventory:server:OpenInventory", "stash", "tunerjobstash", {
+                                    maxweight = 4000000,
+                                    slots = 500,
+                                })
+                            end
+                        end
                     end
                 end
 
-                if isInsideGarageZone then
-                    wait = 0
-                    local inVehicle = IsPedInAnyVehicle(PlayerPedId())
-                    if IsControlJustPressed(0, 38) then
-                        if inVehicle then
-                            DeleteVehicle(GetVehiclePedIsIn(PlayerPedId()))
-                            exports['qb-core']:HideText()
+                if onDuty then
+                    for k, v in pairs(Config.Plates) do
+                        if v.AttachedVehicle == nil then
+                            local PlateDistance = #(pos - vector3(v.coords.x, v.coords.y, v.coords.z))
+                            if PlateDistance < 20 then
+                                inRange = true
+                                if PlateDistance < 3 then
+                                    local veh = GetVehiclePedIsIn(PlayerPedId())
+                                    if IsPedInAnyVehicle(PlayerPedId()) then
+                                        if not IsThisModelABicycle(GetEntityModel(veh)) then
+                                            inZone = true
+                                            text = '[E] Place The Vehicle On The Platform'
+                                            if IsControlJustPressed(0, 38) then
+                                                DoScreenFadeOut(150)
+                                                Wait(150)
+                                                Config.Plates[ClosestPlate].AttachedVehicle = veh
+                                                SetEntityCoords(veh, v.coords)
+                                                SetEntityHeading(veh, v.coords.w)
+                                                FreezeEntityPosition(veh, true)
+                                                Wait(500)
+                                                DoScreenFadeIn(250)
+                                                TriggerServerEvent('qb-vehicletuning:server:SetAttachedVehicle', veh, k)
+                                            end
+                                        else
+                                            QBCore.Functions.Notify("You Cannot Put Bicycles On The Platform!", "error")
+                                        end
+                                    end
+                                end
+                            end
                         else
-                            VehicleList()
-                            exports['qb-core']:HideText()
+                            local PlateDistance = #(pos - vector3(v.coords.x, v.coords.y, v.coords.z))
+                            if PlateDistance < 3 then
+                                inRange = true
+                                inZone = true
+                                text = '[E] Open menu'
+                                if IsControlJustPressed(0, 38) then
+                                    OpenMenu()
+                                end
+                            end
                         end
                     end
                 end
 
-                if isInsideVehiclePlateZone then
-                    wait = 0
-                    local attachedVehicle = Config.Plates[ClosestPlate].AttachedVehicle
-                    local coords = Config.Plates[ClosestPlate].coords
-                    if attachedVehicle then
-                        if IsControlJustPressed(0, 38) then
-                            exports['qb-core']:HideText()
-                            OpenMenu()
-                        end
-                    else
-                        if IsControlJustPressed(0, 38) and IsPedInAnyVehicle(PlayerPedId()) then
-                            local veh = GetVehiclePedIsIn(PlayerPedId())
-                            DoScreenFadeOut(150)
-                            Wait(150)
-                            Config.Plates[ClosestPlate].AttachedVehicle = veh
-                            SetEntityCoords(veh, coords)
-                            SetEntityHeading(veh, coords.w)
-                            FreezeEntityPosition(veh, true)
-                            Wait(500)
-                            DoScreenFadeIn(150)
-                            TriggerServerEvent('qb-vehicletuning:server:SetAttachedVehicle', veh, ClosestPlate)
-
-                            DestroyVehiclePlateZone(ClosestPlate)
-                            RegisterVehiclePlateZone(ClosestPlate, Config.Plates[ClosestPlate])
-                        end
-                    end
+                if not inRange then
+                    Wait(1500)
                 end
+            else
+                Wait(1500)
             end
+        else
+            Wait(1500)
         end
-        Wait(wait)
+
+        Wait(3)
+        if inZone and not alreadyEnteredZone then
+            alreadyEnteredZone = true
+            exports['qb-ui']:showInteraction(text)
+        end
+
+        if not inZone and alreadyEnteredZone then
+            alreadyEnteredZone = false
+            exports['qb-ui']:hideInteraction()
+        end
+        Wait(waitTime)
     end
 end)
+
+
+--[[ CreateThread(function() -- Not event sure what this is even for
+    while true do
+        Wait(1)
+        if (IsPedInAnyVehicle(PlayerPedId(), false)) then
+            local veh = GetVehiclePedIsIn(PlayerPedId(),false)
+            if ModdedVehicles[tostring(veh)] == nil and not IsThisModelABicycle(GetEntityModel(veh)) then
+                local fSteeringLock = GetVehicleHandlingFloat(veh, 'CHandlingData', 'fSteeringLock')
+                fSteeringLock = math.ceil((fSteeringLock * 0.7)) + 0.1
+
+                SetVehicleHandlingFloat(veh, 'CHandlingData', 'fSteeringLock', fSteeringLock)
+                SetVehicleHandlingField(veh, 'CHandlingData', 'fSteeringLock', fSteeringLock)
+
+                
+                SetVehicleHandlingFloat(veh, 'CHandlingData', 'fDeformationDamageMult', 1.000000)
+                SetVehicleHasBeenOwnedByPlayer(veh,true)
+                ModdedVehicles[tostring(veh)] = {
+                    ["fInitialDriveMaxFlatVel"] = fInitialDriveMaxFlatVel,
+                    ["fSteeringLock"] = GetVehicleHandlingFloat(veh, 'CHandlingData', 'fSteeringLock'),
+                    ["fTractionLossMult"] = GetVehicleHandlingFloat(veh, 'CHandlingData', 'fTractionLossMult'),
+                    ["fLowSpeedTractionLossMult"] = GetVehicleHandlingFloat(veh, 'CHandlingData', 'fLowSpeedTractionLossMult')
+                }
+            else
+                Wait(1000)
+            end
+        else
+            Wait(2000)
+        end
+    end
+end) ]]
+
+function getVehicleHandling(pVehicleIdentifier, pHandling)
+	if pVehicleIdentifier and pHandling then
+	  if ModdedVehicles[pVehicleIdentifier] ~= nil and ModdedVehicles[pVehicleIdentifier][pHandling] ~= nil then
+		return true, ModdedVehicles[pVehicleIdentifier][pHandling]
+	  else
+		return false, GetVehicleHandlingFloat(pVehicleIdentifier, 'CHandlingData', pHandling)
+	  end
+	end
+end
+
+CreateThread(function() -- Not event sure what this is even for
+   while true do
+       Wait(1)
+       if (IsPedInAnyVehicle(PlayerPedId(), false)) then
+            local myVeh = GetVehiclePedIsIn(PlayerPedId(),false)
+            local vehicleIdentifier = myVeh
+            if ModdedVehicles[vehicleIdentifier] == nil and not IsThisModelABicycle(GetEntityModel(veh)) then
+                SetVehiclePetrolTankHealth(myVeh, 4000.0)
+                SetVehicleHandlingFloat(myVeh, 'CHandlingData', 'fWeaponDamageMult', 5.500000)
+        
+                local isModified, fSteeringLock = getVehicleHandling(myVeh, 'fSteeringLock')
+                --print(isModified)
+                print(fSteeringLock)
+                if not isModified then
+                    if PlayerJob.name == 'police' or PlayerJob.name == 'ambulance' or GetVehiclePedIsIn(PlayerPedId(), 'flatbed') then
+                        fSteeringLock = math.ceil((fSteeringLock * 0.61)) + 0.1
+                            print(fSteeringLock)
+                            print("angle set POLICE/TOW")
+                    else
+                        print("Setting up handling data")
+                        if GetVehicleMod(myVeh, 15) == 0 or  GetVehicleMod(myVeh, 15) == -1 then
+                            fSteeringLock = math.ceil((fSteeringLock * 0.52)) + 0.1
+                            print(fSteeringLock)
+                            print("angle set 1")
+                        elseif GetVehicleMod(myVeh, 15) == 1 then
+                            fSteeringLock = math.ceil((fSteeringLock * 0.54)) + 0.1
+                            print(fSteeringLock)
+                            print("angle set 2")
+                        elseif GetVehicleMod(myVeh, 15) == 2 then
+                            fSteeringLock = math.ceil((fSteeringLock * 0.56)) + 0.1
+                            print(fSteeringLock)
+                            print("angle set 3")
+                        end
+                        if GetVehicleMod(myVeh, 15) == 3 and GetVehicleMod(myVeh, 12) == 2 then
+                            fSteeringLock = math.ceil((fSteeringLock * 0.61)) + 0.1
+                            print(fSteeringLock)
+                            print("angle set 5")
+                        elseif GetVehicleMod(myVeh, 15) == 3 and not GetVehicleMod(myVeh, 12) == 2 then
+                            fSteeringLock = math.ceil((fSteeringLock * 0.58)) + 0.1
+                            print(fSteeringLock)
+                            print("angle set 4")
+                        end
+                    end
+                end 
+        
+                if not ModdedVehicles[vehicleIdentifier] then ModdedVehicles[vehicleIdentifier] = {} end 
+                ModdedVehicles[vehicleIdentifier]['fSteeringLock'] = fSteeringLock
+                SetVehicleHandlingFloat(vehicleIdentifier, 'CHandlingData', 'fSteeringLock', fSteeringLock)
+        
+                if IsThisModelABike(GetEntityModel(vehicleIdentifier)) then
+                    setVehicleHandling(vehicleIdentifier, 'fTractionCurveMin', 0.6)
+                    setVehicleHandling(vehicleIdentifier, 'fTractionCurveMax', 0.6)
+                    setVehicleHandling(vehicleIdentifier, 'fInitialDriveForce', 2.2)
+                    setVehicleHandling(vehicleIdentifier, 'fBrakeForce', 1.4)
+                    SetVehicleHandlingFloat(vehicleIdentifier, 'CHandlingData', 'fSuspensionReboundDamp', 5.000000) 
+                    SetVehicleHandlingFloat(vehicleIdentifier, 'CHandlingData', 'fSuspensionCompDamp', 5.000000)
+                    SetVehicleHandlingFloat(vehicleIdentifier, 'CHandlingData', 'fSuspensionForce', 22.000000)
+                    SetVehicleHandlingFloat(vehicleIdentifier, 'CHandlingData', 'fCollisionDamageMult', 1.150000)
+                    SetVehicleHandlingFloat(vehicleIdentifier, 'CHandlingData', 'fEngineDamageMult', 0.120000)
+                else
+                    --SetVehicleHandlingFloat(vehicleIdentifier, 'CHandlingData', 'fTractionCurveMin', 1.0)
+                    local fBrakeForce = GetVehicleHandlingFloat(vehicleIdentifier, 'CHandlingData', 'fBrakeForce')
+                    fBrakeForce = fBrakeForce * 0.5
+                    SetVehicleHandlingFloat(veh, 'CHandlingData', 'fBrakeForce', fBrakeForce)
+                    print("handling data set")
+                    SetVehicleHandlingFloat(vehicleIdentifier, 'CHandlingData', 'fEngineDamageMult', 0.250000)
+                    SetVehicleHandlingFloat(vehicleIdentifier, 'CHandlingData', 'fCollisionDamageMult', 1.000000)
+                    -- test lower deformation for weird driving on cop / some race cars after minor crashes
+                    SetVehicleHandlingFloat(vehicleIdentifier, 'CHandlingData', 'fDeformationDamageMult', 0.400000)
+                end
+        
+                ModdedVehicles[vehicleIdentifier].fInitialDriveMaxFlatVel = GetVehicleHandlingFloat(vehicleIdentifier, 'CHandlingData', 'fInitialDriveMaxFlatVel')
+                ModdedVehicles[vehicleIdentifier].fTractionLossMult = GetVehicleHandlingFloat(vehicleIdentifier, 'CHandlingData', 'fTractionLossMult')
+                ModdedVehicles[vehicleIdentifier].fLowSpeedTractionLossMult = GetVehicleHandlingFloat(vehicleIdentifier, 'CHandlingData', 'fLowSpeedTractionLossMult')
+                ModdedVehicles[vehicleIdentifier].fDriveBiasFront = GetVehicleHandlingFloat(vehicleIdentifier, 'CHandlingData', 'fDriveBiasFront')
+                ModdedVehicles[vehicleIdentifier].fDriveInertia = GetVehicleHandlingFloat(vehicleIdentifier, 'CHandlingData', 'fDriveInertia')
+
+               
+            else
+                Wait(2000)
+            end
+        else
+            Wait(2000)
+        end
+    end
+end)
+
+--[[ CreateThread(function() -- Not event sure what this is even for
+   while true do
+       Wait(1)
+       if (IsPedInAnyVehicle(PlayerPedId(), false)) then
+           local veh = GetVehiclePedIsIn(PlayerPedId(),false)
+           if ModdedVehicles[tostring(veh)] == nil and not IsThisModelABicycle(GetEntityModel(veh)) then
+               local fSteeringLock = GetVehicleHandlingFloat(veh, 'CHandlingData', 'fSteeringLock')
+               fSteeringLock = math.ceil((fSteeringLock * 0.6)) + 0.1
+
+               SetVehicleHandlingFloat(veh, 'CHandlingData', 'fSteeringLock', fSteeringLock)
+               SetVehicleHandlingField(veh, 'CHandlingData', 'fSteeringLock', fSteeringLock)
+                local fInitialDriveMaxFlatVel = GetVehicleHandlingFloat(veh, 'CHandlingData', 'fInitialDriveMaxFlatVel')
+
+               if IsThisModelABike(GetEntityModel(veh)) then
+                   local fTractionCurveMin = GetVehicleHandlingFloat(veh, 'CHandlingData', 'fTractionCurveMin')
+
+                    fTractionCurveMin = fTractionCurveMin * 0.6
+                    SetVehicleHandlingFloat(veh, 'CHandlingData', 'fTractionCurveMin', fTractionCurveMin)
+                    SetVehicleHandlingField(veh, 'CHandlingData', 'fTractionCurveMin', fTractionCurveMin)
+
+                     local fTractionCurveMax = GetVehicleHandlingFloat(veh, 'CHandlingData', 'fTractionCurveMax')
+                     fTractionCurveMax = fTractionCurveMax * 0.6
+                     SetVehicleHandlingFloat(veh, 'CHandlingData', 'fTractionCurveMax', fTractionCurveMax)
+                     SetVehicleHandlingField(veh, 'CHandlingData', 'fTractionCurveMax', fTractionCurveMax)
+                    local fInitialDriveForce = GetVehicleHandlingFloat(veh, 'CHandlingData', 'fInitialDriveForce')
+                   fInitialDriveForce = fInitialDriveForce * 2.4
+                    SetVehicleHandlingFloat(veh, 'CHandlingData', 'fInitialDriveForce', fInitialDriveForce)
+
+                    local fBrakeForce = GetVehicleHandlingFloat(veh, 'CHandlingData', 'fBrakeForce')
+                    fBrakeForce = fBrakeForce * 1.4
+                    SetVehicleHandlingFloat(veh, 'CHandlingData', 'fBrakeForce', fBrakeForce)
+
+                    SetVehicleHandlingFloat(veh, 'CHandlingData', 'fSuspensionReboundDamp', 5.000000)
+                    SetVehicleHandlingField(veh, 'CHandlingData', 'fSuspensionReboundDamp', 5.000000)
+
+                    SetVehicleHandlingFloat(veh, 'CHandlingData', 'fSuspensionCompDamp', 5.000000)
+                    SetVehicleHandlingField(veh, 'CHandlingData', 'fSuspensionCompDamp', 5.000000)
+
+                    SetVehicleHandlingFloat(veh, 'CHandlingData', 'fSuspensionForce', 22.000000)
+                    SetVehicleHandlingField(veh, 'CHandlingData', 'fSuspensionForce', 22.000000)
+                    SetVehicleHandlingFloat(veh, 'CHandlingData', 'fCollisionDamageMult', 2.500000)
+                    SetVehicleHandlingFloat(veh, 'CHandlingData', 'fEngineDamageMult', 0.120000)
+                else
+                    local fBrakeForce = GetVehicleHandlingFloat(veh, 'CHandlingData', 'fBrakeForce')
+                    fBrakeForce = fBrakeForce * 0.5
+                    SetVehicleHandlingFloat(veh, 'CHandlingData', 'fBrakeForce', fBrakeForce)
+
+                    local fInitialDriveForce = GetVehicleHandlingFloat(veh, 'CHandlingData', 'fInitialDriveForce')
+                    if fInitialDriveForce < 0.289 then
+                        fInitialDriveForce = fInitialDriveForce * 1.2
+                        SetVehicleHandlingFloat(veh, 'CHandlingData', 'fInitialDriveForce', fInitialDriveForce)
+                    else
+                        fInitialDriveForce = fInitialDriveForce * 0.9
+                        SetVehicleHandlingFloat(veh, 'CHandlingData', 'fInitialDriveForce', fInitialDriveForce)
+                    end
+                   local fInitialDragCoeff = GetVehicleHandlingFloat(veh, 'CHandlingData', 'fInitialDragCoeff')
+                    fInitialDragCoeff = fInitialDragCoeff * 0.3
+                    SetVehicleHandlingFloat(veh, 'CHandlingData', 'fInitialDragCoeff', fInitialDragCoeff)
+                   SetVehicleHandlingFloat(veh, 'CHandlingData', 'fEngineDamageMult', 0.100000)
+                    SetVehicleHandlingFloat(veh, 'CHandlingData', 'fCollisionDamageMult', 2.900000)
+               end
+                SetVehicleHandlingFloat(veh, 'CHandlingData', 'fDeformationDamageMult', 1.000000)
+                SetVehicleHasBeenOwnedByPlayer(veh,true)
+                ModdedVehicles[tostring(veh)] = {
+                    ["fInitialDriveMaxFlatVel"] = fInitialDriveMaxFlatVel,
+                    ["fSteeringLock"] = GetVehicleHandlingFloat(veh, 'CHandlingData', 'fSteeringLock'),
+                    ["fTractionLossMult"] = GetVehicleHandlingFloat(veh, 'CHandlingData', 'fTractionLossMult'),
+                    ["fLowSpeedTractionLossMult"] = GetVehicleHandlingFloat(veh, 'CHandlingData', 'fLowSpeedTractionLossMult')
+                }
+            else
+                Wait(1000)
+            end
+        else
+            Wait(2000)
+        end
+    end
+end) ]]
+
 
 CreateThread(function()
     while true do
@@ -1100,3 +1115,79 @@ CreateThread(function()
         end
     end
 end)
+
+-- 3rd eye bullshit
+
+RegisterNetEvent("qb-mechanicjob:client:targetshowvehlist",function(data)
+    VehicleList()
+end)
+
+RegisterNetEvent("qb-mechanicjob:client:putawayveh",function(data)
+    DeleteVehicle(GetPlayersLastVehicle(PlayerPedId()))
+end)
+
+RegisterNetEvent("tuner:personalstash")
+AddEventHandler('tuner:personalstash', function(players)
+    if PlayerJob.name == "tuner" then
+        TriggerServerEvent("inventory:server:OpenInventory", "stash", "tunerpersonal_"..QBCore.Functions.GetPlayerData().citizenid)
+        TriggerEvent("inventory:client:SetCurrentStash", "tunerpersonal_"..QBCore.Functions.GetPlayerData().citizenid)
+    end
+end)
+
+-- 3rd eye target tuner boss menu
+exports['qb-target']:AddBoxZone("TunerDuty", vector3(126.04, -3007.26, 7.04), 0.4, 0.45, {
+    name = "TunerDuty",
+    heading = 90.0,
+    debugPoly = false,
+    minZ=6.84,
+    maxZ=7.14
+    }, {
+        options = {
+			{
+                type = "server",
+                event = "QBCore:ToggleDuty",
+                icon = "fas fa-sign-in-alt",
+                label = "Go On/Off Duty",
+                job = "tuner",
+            },
+        },
+        distance = 1.5
+})
+
+exports['qb-target']:AddBoxZone("TunerOutfits", vector3(154.45, -3011.35, 7.04), 2.15, 0.5, {
+    name = "TunerOutfits",
+    heading = 0,
+    debugPoly = false,
+    minZ=6.04,
+    maxZ=8.14
+    }, {
+    options = {
+        {
+            type = "client",
+            event = "raid_clothes:outfits", 
+            icon = "fas fa-tshirt",
+            label = "Change Outfit",
+            job = "tuner",
+        },
+    },
+    distance = 3.5
+})
+
+exports['qb-target']:AddBoxZone("TunerPersonalStash", vector3(145.69, -3007.8, 7.04), 1.45, 0.8, {
+    name = "TunerPersonalStash",
+    heading = 0,
+    debugPoly = false,
+    minZ=6.04,
+    maxZ=6.84
+    }, {
+    options = {
+        {
+            type = "client",
+            event = "tuner:personalstash",
+            icon = "fas fa-archive",
+            label = "Personal Stash",
+            job = "tuner",
+        },
+    },
+    distance = 3.5
+})

@@ -9,24 +9,29 @@ local CurrentFingerprint = 0
 local shotAmount = 0
 
 local StatusList = {
-    ['fight'] = Lang:t('evidence.red_hands'),
-    ['widepupils'] = Lang:t('evidence.wide_pupils'),
-    ['redeyes'] = Lang:t('evidence.red_eyes'),
-    ['weedsmell'] = Lang:t('evidence.weed_smell'),
-    ['gunpowder'] = Lang:t('evidence.gunpowder'),
-    ['chemicals'] = Lang:t('evidence.chemicals'),
-    ['heavybreath'] = Lang:t('evidence.heavy_breathing'),
-    ['sweat'] = Lang:t('evidence.sweat'),
-    ['handbleed'] = Lang:t('evidence.handbleed'),
-    ['confused'] = Lang:t('evidence.confused'),
-    ['alcohol'] = Lang:t('evidence.alcohol'),
-    ["heavyalcohol"] = Lang:t('evidence.heavy_alcohol'),
-    ["agitated"] = Lang:t('evidence.agitated')
+    ['fight'] = 'Red hands',
+    ['widepupils'] = 'Wide pupils',
+    ['redeyes'] = 'Red eyes',
+    ['weedsmell'] = 'Smells like weed',
+    ['gunpowder'] = 'Gunpowder in clothing',
+    ['chemicals'] = 'smells chemical',
+    ['heavybreath'] = 'Breathes heavily',
+    ['sweat'] = 'Sweats a lot',
+    ['handbleed'] = 'Blood on hands',
+    ['confused'] = 'Confused',
+    ['alcohol'] = 'Smells like alcohol',
+    ['heavyalcohol'] = 'Smells very much like alcohol',
+    ["agitated"] = 'Agitated',
+    ['tobaccosmell'] = 'Smells like tobacco',
 }
 
 local WhitelistedWeapons = {
     `weapon_unarmed`,
     `weapon_snowball`,
+    `weapon_shoe`,
+    `weapon_brick`,
+    `weapon_cash`,
+    `weapon_book`,
     `weapon_stungun`,
     `weapon_petrolcan`,
     `weapon_hazardcan`,
@@ -133,7 +138,7 @@ RegisterNetEvent('evidence:client:ClearBlooddropsInArea', function()
         disableCombat = true
     }, {}, {}, {}, function() -- Done
         if Blooddrops and next(Blooddrops) then
-            for bloodId, _ in pairs(Blooddrops) do
+            for bloodId, v in pairs(Blooddrops) do
                 if #(pos -
                     vector3(Blooddrops[bloodId].coords.x, Blooddrops[bloodId].coords.y, Blooddrops[bloodId].coords.z)) <
                     10.0 then
@@ -175,7 +180,7 @@ RegisterNetEvent('evidence:client:ClearCasingsInArea', function()
         disableCombat = true
     }, {}, {}, {}, function() -- Done
         if Casings and next(Casings) then
-            for casingId, _ in pairs(Casings) do
+            for casingId, v in pairs(Casings) do
                 if #(pos - vector3(Casings[casingId].coords.x, Casings[casingId].coords.y, Casings[casingId].coords.z)) <
                     10.0 then
                     casingList[#casingList+1] = casingId
@@ -197,7 +202,7 @@ CreateThread(function()
         Wait(10000)
         if LocalPlayer.state.isLoggedIn then
             if CurrentStatusList and next(CurrentStatusList) then
-                for k, _ in pairs(CurrentStatusList) do
+                for k, v in pairs(CurrentStatusList) do
                     if CurrentStatusList[k].time > 0 then
                         CurrentStatusList[k].time = CurrentStatusList[k].time - 10
                     else
@@ -217,7 +222,7 @@ CreateThread(function() -- Gunpowder Status when shooting
     while true do
         Wait(1)
         local ped = PlayerPedId()
-        if IsPedShooting(ped) then
+        if IsPedShooting(ped) or IsPedDoingDriveby(ped) then
             local weapon = GetSelectedPedWeapon(ped)
             if not WhitelistedWeapon(weapon) then
                 shotAmount = shotAmount + 1
@@ -264,7 +269,7 @@ CreateThread(function()
             local pos = GetEntityCoords(PlayerPedId())
             if #(pos - vector3(Blooddrops[CurrentBlooddrop].coords.x, Blooddrops[CurrentBlooddrop].coords.y,
                 Blooddrops[CurrentBlooddrop].coords.z)) < 1.5 then
-                DrawText3D(Blooddrops[CurrentBlooddrop].coords.x, Blooddrops[CurrentBlooddrop].coords.y, Blooddrops[CurrentBlooddrop].coords.z, Lang:t('info.blood_text', {value = DnaHash(Blooddrops[CurrentBlooddrop].citizenid)}))
+                DrawText3D(Blooddrops[CurrentBlooddrop].coords.x, Blooddrops[CurrentBlooddrop].coords.y, Blooddrops[CurrentBlooddrop].coords.z, Lang:t('blood_text', {value = DnaHash(Blooddrops[CurrentBlooddrop].citizenid)}))
                 if IsControlJustReleased(0, 47) then
                     local s1, s2 = GetStreetNameAtCoord(Blooddrops[CurrentBlooddrop].coords.x, Blooddrops[CurrentBlooddrop].coords.y, Blooddrops[CurrentBlooddrop].coords.z)
                     local street1 = GetStreetNameFromHashKey(s1)
@@ -350,6 +355,28 @@ CreateThread(function()
             else
                 Wait(5000)
             end
+        end
+    end
+end)
+
+RegisterNetEvent('evidenceBag:used');
+AddEventHandler('evidenceBag:used', function(item)
+    local dialog = exports['qb-input']:ShowInput({
+        header = "Write evidence note",
+        submitText = "Write",
+        inputs = {
+            {
+                text = "Note",
+                name = "pv-evb-note",
+                type = "text",
+                isRequired = true,
+            },
+        }
+    });
+
+    if dialog ~= nil then
+        if(dialog['pv-evb-note'] ~= nil and dialog['pv-evb-note'] ~= '') then
+            TriggerServerEvent('server:evidenceBag:setNote',item,dialog['pv-evb-note']);
         end
     end
 end)
